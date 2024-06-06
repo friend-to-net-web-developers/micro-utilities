@@ -1,6 +1,4 @@
-﻿using FriendToNetWebDevelopers.MicroUtilities;
-
-namespace FriendToNetWebDevelopers.MicroUtilities.Test;
+﻿namespace FriendToNetWebDevelopers.MicroUtilities.Test;
 
 /// <summary>
 /// Testing base on external gist
@@ -9,7 +7,6 @@ namespace FriendToNetWebDevelopers.MicroUtilities.Test;
 [TestFixture]
 public class EmailTests
 {
-    
     [Test]
     public void Email_Valid_Standard()
     {
@@ -25,14 +22,13 @@ public class EmailTests
         Assert.That(Utilities.Email.IsValidEmail("email@example.co.jp"));
         Assert.That(Utilities.Email.IsValidEmail("firstname-lastname@example.com"));
     }
-    
+
     [Test]
     public void Email_Invalid_Strange()
     {
         Assert.That(Utilities.Email.IsValidEmail("”(),:;<>[\\]@example.com"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("just”not”right@example.com"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("this\\ is\"really\"not\\allowed@example.com"), Is.False);
-        
     }
 
     [Test]
@@ -50,7 +46,8 @@ public class EmailTests
         Assert.That(Utilities.Email.IsValidEmail("email@example.com (Joe Smith)"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("email@example"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("email@-example.com"), Is.False);
-        Assert.That(Utilities.Email.IsValidEmail("email@example.web"), Is.False);    //I do not know why this would be false
+        Assert.That(Utilities.Email.IsValidEmail("email@example.web"),
+            Is.False); //I do not know why this would be false
         Assert.That(Utilities.Email.IsValidEmail("email@111.222.333.44444"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("email@example..com"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("Abc..123@example.com"), Is.False);
