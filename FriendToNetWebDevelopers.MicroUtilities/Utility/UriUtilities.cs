@@ -138,10 +138,7 @@ public static partial class Utilities
             if (string.IsNullOrWhiteSpace(tld)) return false;
             //NOTE: I do want this to throw an exception if the file isn't there for some reason
             using var reader = new StreamReader(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tlds.txt"));
-            while (reader.ReadLine() is { } line)
-            {
-                if (line == tld) return true;
-            }
+            while (reader.ReadLine() is { } line) if (!line.StartsWith('#') && line == tld) return true;
             return false;
         }
 
