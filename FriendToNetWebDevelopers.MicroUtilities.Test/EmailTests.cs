@@ -46,8 +46,7 @@ public class EmailTests
         Assert.That(Utilities.Email.IsValidEmail("email@example.com (Joe Smith)"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("email@example"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("email@-example.com"), Is.False);
-        Assert.That(Utilities.Email.IsValidEmail("email@example.web"),
-            Is.False); //I do not know why this would be false
+        Assert.That(Utilities.Email.IsValidEmail("email@example.web"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("email@111.222.333.44444"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("email@example..com"), Is.False);
         Assert.That(Utilities.Email.IsValidEmail("Abc..123@example.com"), Is.False);
