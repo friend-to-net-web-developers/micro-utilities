@@ -13,8 +13,8 @@ public class YoutubeTests
     [Test]
     public void YoutubeIdTest()
     {
-        Assert.That(Utilities.YoutubeUtilities.IsValidYoutubeId(ValidYoutubeId), Is.True);
-        Assert.That(Utilities.YoutubeUtilities.IsValidYoutubeId("f"), Is.False);
+        Assert.That(Utilities.Youtube.IsValidYoutubeId(ValidYoutubeId), Is.True);
+        Assert.That(Utilities.Youtube.IsValidYoutubeId("f"), Is.False);
     }
     
     [Test]
@@ -22,25 +22,25 @@ public class YoutubeTests
     {
         var client = new HttpClient();
         
-        var hqDefaultOkay = Utilities.YoutubeUtilities.GetYoutubeThumbnail(ValidYoutubeId, YoutubeThumbnailEnum.HqDefault);
+        var hqDefaultOkay = Utilities.Youtube.GetYoutubeThumbnail(ValidYoutubeId, YoutubeThumbnailEnum.HqDefault);
         var hqDefaultOkayResponse = client.GetAsync(new Uri(hqDefaultOkay)).Result;
         Assert.That(hqDefaultOkayResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         
-        var maxResDefaultOkay = Utilities.YoutubeUtilities.GetYoutubeThumbnail(ValidYoutubeId, YoutubeThumbnailEnum.MaxResDefault);
+        var maxResDefaultOkay = Utilities.Youtube.GetYoutubeThumbnail(ValidYoutubeId, YoutubeThumbnailEnum.MaxResDefault);
         var maxResDefaultOkayResponse = client.GetAsync(new Uri(maxResDefaultOkay)).Result;
         Assert.That(maxResDefaultOkayResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        Assert.Throws<BadYoutubeIdException>(() => Utilities.YoutubeUtilities.GetYoutubeThumbnail("f"));
+        Assert.Throws<BadYoutubeIdException>(() => Utilities.Youtube.GetYoutubeThumbnail("f"));
     }
 
     [Test]
     public void IframeTest()
     {
-        var iframeOkay = Utilities.YoutubeUtilities.GetYoutubeIframeUrl(ValidYoutubeId);
+        var iframeOkay = Utilities.Youtube.GetYoutubeIframeUrl(ValidYoutubeId);
         var client = new HttpClient();
         var iframeOkayResponse = client.GetAsync(new Uri(iframeOkay)).Result;
         Assert.That(iframeOkayResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         
-        Assert.Throws<BadYoutubeIdException>(() => Utilities.YoutubeUtilities.GetYoutubeIframeUrl("f"));
+        Assert.Throws<BadYoutubeIdException>(() => Utilities.Youtube.GetYoutubeIframeUrl("f"));
     }
 }

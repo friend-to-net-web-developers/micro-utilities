@@ -10,10 +10,8 @@ public static partial class Utilities
     /// Used to handle miscellaneous youtube-related url tasks.<br/>
     /// Makes heavy use of Uri building and validation.  Should make life more difficult for a hostile actor. 
     /// </summary>
-    public static partial class YoutubeUtilities
+    public static partial class Youtube
     {
-        private const string ErrorYoutubeId = "-error-";
-
         /// <summary>
         /// Gets the default size thumbnail
         /// </summary>
@@ -56,6 +54,7 @@ public static partial class Utilities
         /// <li><em>CHECK 2</em> - It is exactly 11 characters long <b>AND</b></li>
         /// <li><em>CHECK 3</em> - It matches the pattern "[a-zA-Z0-9_-]{11}"</li>
         /// </ul>
+        /// In that order
         /// </summary>
         /// <param name="youtubeVideoId">The Youtube Id to match against</param>
         /// <returns><ul>
