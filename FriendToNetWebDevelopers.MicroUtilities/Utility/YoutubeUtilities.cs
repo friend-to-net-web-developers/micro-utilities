@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using FriendToNetWebDevelopers.MicroUtilities.Enum;
+using FriendToNetWebDevelopers.MicroUtilities.Exception;
 
 namespace FriendToNetWebDevelopers.MicroUtilities;
 
@@ -29,9 +30,10 @@ public static partial class Utilities
         /// <returns></returns>
         public static string GetYoutubeThumbnail(string youtubeVideoId, YoutubeThumbnailEnum thumbnail)
         {
-            var finalYoutubeId = IsValidYoutubeId(youtubeVideoId) ? youtubeVideoId : ErrorYoutubeId;
-            //This step is taken just in case
-            return Url.BuildAbsoluteUrl(new Uri($"https://i.ytimg.com/vi/{finalYoutubeId}/{thumbnail}.jpg"));
+            if (!IsValidYoutubeId(youtubeVideoId))
+                throw new BadYoutubeIdException(youtubeVideoId);
+            
+            return Url.BuildAbsoluteUrl(new Uri($"https://i.ytimg.com/vi/{youtubeVideoId}/{thumbnail}.jpg"));
         }
 
         /// <summary>
@@ -41,8 +43,8 @@ public static partial class Utilities
         /// <returns></returns>
         public static string GetYoutubeIframeUrl(string youtubeVideoId)
         {
-            var finalYoutubeId = IsValidYoutubeId(youtubeVideoId) ? youtubeVideoId : ErrorYoutubeId;
-            return Url.BuildAbsoluteUrl(new Uri($"https://www.youtube.com/embed/{finalYoutubeId}"));
+            if (!IsValidYoutubeId(youtubeVideoId)) throw new BadYoutubeIdException(youtubeVideoId);
+            return Url.BuildAbsoluteUrl(new Uri($"https://www.youtube.com/embed/{youtubeVideoId}"));
         }
 
         
