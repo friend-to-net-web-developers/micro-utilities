@@ -160,11 +160,3 @@ Utilities.Youtube.GetYoutubeIframeUrl("foo-bar");
 //Throws BadYoutubeIdException
 ```
 
-
-# License Information
-
-[Micro Utilities](https://github.com/friend-to-net-web-developers/micro-utilities)
-by [Christopher Goehrs](https://github.com/chris-goehrs)
-through [Friend to .NET Web Developers](https://github.com/friend-to-net-web-developers)
-is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0)
-
