@@ -13,14 +13,21 @@ public class YoutubeTests
     [Test]
     public void YoutubeIdTest()
     {
-        Assert.That(Utilities.Youtube.IsValidYoutubeId(ValidYoutubeId), Is.True);
-        Assert.That(Utilities.Youtube.IsValidYoutubeId("f"), Is.False);
+        Assert.Multiple(() =>
+        {
+            Assert.That(Utilities.Youtube.IsValidYoutubeId(ValidYoutubeId), Is.True);
+            Assert.That(Utilities.Youtube.IsValidYoutubeId("f"), Is.False);
+        });
     }
-    
+
     [Test]
     public void ThumbnailTest()
     {
         var client = new HttpClient();
+        
+        var defaultOkay = Utilities.Youtube.GetYoutubeThumbnail(ValidYoutubeId);
+        var defaultOkayResponse = client.GetAsync(new Uri(defaultOkay)).Result;
+        Assert.That(defaultOkayResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK)); 
         
         var hqDefaultOkay = Utilities.Youtube.GetYoutubeThumbnail(ValidYoutubeId, YoutubeThumbnailEnum.HqDefault);
         var hqDefaultOkayResponse = client.GetAsync(new Uri(hqDefaultOkay)).Result;
