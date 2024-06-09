@@ -9,13 +9,14 @@ public static partial class Utilities
     /// Checks at both compile-time and runtime if debugging is being used
     /// </summary>
     /// <returns></returns>
-    internal static bool IsDebug()
+    private static bool IsDebug()
     {
         //Compile-time check (this is faster)
 #if DEBUG
         return true;
 #endif
         //Run-time check
+        // ReSharper disable once HeuristicUnreachableCode
         return Debugger.IsAttached;
     }
 }

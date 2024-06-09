@@ -1,6 +1,4 @@
-﻿using FriendToNetWebDevelopers.MicroUtilities;
-using FriendToNetWebDevelopers.MicroUtilities.Exception;
-using NUnit.Framework.Constraints;
+﻿using FriendToNetWebDevelopers.MicroUtilities.Exception;
 
 namespace FriendToNetWebDevelopers.MicroUtilities.Test;
 
@@ -14,23 +12,20 @@ public class IdTests
         Assert.That(id, Does.StartWith("id"));
         id = Utilities.Id.GetValidHtmlId(65535, "id", "_stuff");
         Assert.That(id, Does.StartWith("id"));
-        Assert.That(id, Does.EndWith("_stuff"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(id, Does.EndWith("_stuff"));
+            Assert.That(Utilities.Id.GetValidHtmlId((uint)1), Is.EqualTo("id1"));
+            Assert.That(Utilities.Id.GetValidHtmlId((long)1), Is.EqualTo("id1"));
+            Assert.That(Utilities.Id.GetValidHtmlId((ulong)1), Is.EqualTo("id1"));
+        });
     }
 
     [Test]
     public void Id_Invalid()
     {
-        Assert.Throws<BadIdPrefixException>(() =>
-        {
-            Utilities.Id.GetValidHtmlId(" ");
-        });
-        Assert.Throws<BadIdPrefixException>(() =>
-        {
-            Utilities.Id.GetValidHtmlId("");
-        });
-        Assert.Throws<BadIdFormatException>(() =>
-        {
-            Utilities.Id.GetValidHtmlId("id", "@");
-        });
+        Assert.Throws<BadIdPrefixException>(() => { Utilities.Id.GetValidHtmlId(" "); });
+        Assert.Throws<BadIdPrefixException>(() => { Utilities.Id.GetValidHtmlId(""); });
+        Assert.Throws<BadIdFormatException>(() => { Utilities.Id.GetValidHtmlId(Guid.NewGuid(),"id", "@"); });
     }
 }

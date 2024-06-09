@@ -6,7 +6,7 @@ namespace FriendToNetWebDevelopers.MicroUtilities;
 
 public static partial class Utilities
 {
-    public static partial class Url
+    public static class Url
     {
         private const string SingleDot = ".";
         private const string DoubleDot = "..";
@@ -36,8 +36,7 @@ public static partial class Utilities
             if (segment == null) return false;
             if (string.IsNullOrEmpty(segment)) return emptyIsOkay;
             if (SingleDot.Equals(segment) || DoubleDot.Equals(segment)) return true;
-            if (HttpUtility.UrlEncode(segment) != segment) return false;
-            return UrlSegmentRegex().IsMatch(segment);
+            return HttpUtility.UrlEncode(segment) == segment && UrlSegmentRegex().IsMatch(segment);
         }
 
         #region Sluggery
@@ -114,6 +113,7 @@ public static partial class Utilities
             foreach (var (key, member) in queryObject)
             {
                 var k = HttpUtility.UrlEncode(key);
+                if (k.Contains("%5b%5d")) k = k.Replace("%5b%5d", "[]");
                 var v = HttpUtility.UrlEncode(member);
                 s.Append(first ? "?" : "&");
                 first = false;
@@ -151,7 +151,7 @@ public static partial class Utilities
     [GeneratedRegex("\\-{2,}")]
     private static partial Regex MultipleDashesReplacementRegex();
     
-    [GeneratedRegex(@"^[a-zA-Z][-a-zA-Z0-9_]*$")]
+    [GeneratedRegex("^[a-zA-Z][-a-zA-Z0-9_]*$")]
     private static partial Regex UrlSegmentRegex();
     
     [GeneratedRegex("^[a-z0-9]+(?:-[a-z0-9]+)*$")]
