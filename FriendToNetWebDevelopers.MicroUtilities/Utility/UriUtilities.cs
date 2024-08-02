@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
+using FriendToNetWebDevelopers.MicroUtilities.Database;
 
 namespace FriendToNetWebDevelopers.MicroUtilities;
 
@@ -137,7 +138,7 @@ public static partial class Utilities
             var tld = uri.Host.Split('.')[^1].ToUpperInvariant();
             if (string.IsNullOrWhiteSpace(tld)) return false;
             //NOTE: I do want this to throw an exception if the file isn't there for some reason
-            using var reader = new StreamReader(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tlds.txt"));
+            using var reader = new StringReader(Tlds.Domains);
             while (reader.ReadLine() is { } line) if (!line.StartsWith('#') && line == tld) return true;
             return false;
         }

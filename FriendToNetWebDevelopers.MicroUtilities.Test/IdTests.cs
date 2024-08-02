@@ -26,6 +26,6 @@ public class IdTests
     {
         Assert.Throws<BadIdPrefixException>(() => { Utilities.Id.GetValidHtmlId(" "); });
         Assert.Throws<BadIdPrefixException>(() => { Utilities.Id.GetValidHtmlId(""); });
-        Assert.Throws<BadIdFormatException>(() => { Utilities.Id.GetValidHtmlId(Guid.NewGuid(),"id", "@"); });
+        Assert.Throws<BadIdFormatException>(() => { Utilities.Id.GetValidHtmlId(Guid.NewGuid(), "id", "@"); });
     }
 }
