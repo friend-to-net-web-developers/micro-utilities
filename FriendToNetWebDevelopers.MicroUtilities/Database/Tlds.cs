@@ -1,3 +1,8 @@
+﻿namespace FriendToNetWebDevelopers.MicroUtilities.Database;
+
+public static class Tlds
+{
+    public const string Domains = @"
 # Version 2024060500, Last Updated Wed Jun  5 07:07:01 2024 UTC
 AAA
 AARP
@@ -1446,4 +1451,5 @@ ZIP
 ZM
 ZONE
 ZUERICH
-ZW
+ZW";
+}

@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.0.3</Version>
+        <Version>1.0.4</Version>
         <Title>Micro Utilities</Title>
         <Authors>Christopher Goehrs via FriendToNetWebDevelopers</Authors>
         <Description>A set of tiny utilities to help on web projects</Description>
@@ -14,8 +14,8 @@
         <RepositoryType>Git</RepositoryType>
         <PackageTags>html,youtube,uri,url,dynamic ids</PackageTags>
         <Company>FriendToNetWebDevelopers</Company>
-        <AssemblyVersion>1.0.3</AssemblyVersion>
-        <FileVersion>1.0.3</FileVersion>
+        <AssemblyVersion>1.0.4</AssemblyVersion>
+        <FileVersion>1.0.4</FileVersion>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageIcon>icon.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -27,15 +27,16 @@
             <PackagePath>\</PackagePath>
         </None>
         <None Include="icon.png" Pack="true" PackagePath="" />
-        <None Update="tlds.txt">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
     </ItemGroup>
 
     <ItemGroup>
       <Content Include="..\README.md" Pack="true" PackagePath="\">
         <Link>README.md</Link>
       </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="tlds.txt" />
     </ItemGroup>
 
 </Project>
