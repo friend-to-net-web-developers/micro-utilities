@@ -160,3 +160,7 @@ Utilities.Youtube.GetYoutubeIframeUrl("foo-bar");
 //Throws BadYoutubeIdException
 ```
 
+## Contributing
+
+We welcome contributions from the community! Please read our [How to Contribute](HOW_TO_CONTRIBUTE.md) guide to get started. All contributors are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
+
