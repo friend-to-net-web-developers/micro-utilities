@@ -162,5 +162,5 @@ Utilities.Youtube.GetYoutubeIframeUrl("foo-bar");
 
 ## Contributing
 
-We welcome contributions from the community! Please read our [How to Contribute](docs/CONTRIBUTING.md) guide to get started. All contributors are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
+We welcome contributions from the community! Please read our [How to Contribute](CONTRIBUTING.md) guide to get started. All contributors are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
 
