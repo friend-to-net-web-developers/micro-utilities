@@ -1,6 +1,6 @@
 ﻿# Code of Conduct
 ## Introduction
-We are committed to providing a friendly, safe, and welcoming environment for all, regardless of background, and we welcome contributions from everyone. Our community operates on principles of respect, empathy, selfless love (ἀγάπη or agápē), and mutual support. We encourage constructive engagement and focus on the well-being of the project and its members.
+We are committed to providing a friendly, safe, and welcoming environment for all, regardless of background, and we welcome contributions from everyone. Our community operates on principles of respect, empathy, and mutual support. We encourage constructive engagement and focus on the well-being of the project and its members.
 
 ## Our Standards
 Examples of behavior that contribute to creating a positive environment include:
