@@ -13,8 +13,8 @@
         <RepositoryType>Git</RepositoryType>
         <PackageTags>html,youtube,uri,url,dynamic ids</PackageTags>
         <Company>FriendToNetWebDevelopers</Company>
-        <AssemblyVersion>1.0.5</AssemblyVersion>
-        <FileVersion>1.0.5</FileVersion>
+        <AssemblyVersion>1.0.6</AssemblyVersion>
+        <FileVersion>1.0.6</FileVersion>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageIcon>icon.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
