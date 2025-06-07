@@ -1,4 +1,5 @@
-﻿using FriendToNetWebDevelopers.MicroUtilities.Exception;
+﻿using FriendToNetWebDevelopers.MicroUtilities.Enum;
+using FriendToNetWebDevelopers.MicroUtilities.Exception;
 
 namespace FriendToNetWebDevelopers.MicroUtilities.Test;
 
@@ -19,6 +20,15 @@ public class IdTests
             Assert.That(Utilities.Id.GetValidHtmlId((long)1), Is.EqualTo("id1"));
             Assert.That(Utilities.Id.GetValidHtmlId((ulong)1), Is.EqualTo("id1"));
         });
+        Assert.That(Utilities.Id.IsValidId("id"), Is.True);
+
+        var okayResult =
+            Utilities.Id.TryGetAsValidId("id", TryGetValidIdDefaultStrategyEnum.EmptyOnInvalid, out var okayIdResult);
+        Assert.Multiple(() =>
+        {
+            Assert.That(okayResult, Is.True);
+            Assert.That(okayIdResult, Is.EqualTo("id"));
+        });
     }
 
     [Test]
@@ -27,5 +37,13 @@ public class IdTests
         Assert.Throws<BadIdPrefixException>(() => { Utilities.Id.GetValidHtmlId(" "); });
         Assert.Throws<BadIdPrefixException>(() => { Utilities.Id.GetValidHtmlId(""); });
         Assert.Throws<BadIdFormatException>(() => { Utilities.Id.GetValidHtmlId(Guid.NewGuid(), "id", "@"); });
+        Assert.That(Utilities.Id.IsValidId("bob dole"), Is.False);
+        
+        var failedResult = Utilities.Id.TryGetAsValidId("bob dole", TryGetValidIdDefaultStrategyEnum.GenerateOnInvalid, out var failedIdResult);
+        Assert.Multiple(() =>
+        {
+            Assert.That(failedResult, Is.False);
+            Assert.That(Utilities.Id.IsValidId(failedIdResult), Is.True);
+        });
     }
 }
