@@ -12,27 +12,6 @@ For each of these, you'll need to include this.
 using FriendToNetWebDeveloper.MicroUtilities;
 ```
 
-### Dynamically Generated Html IDs
-
-This is used when creating elements which need to refer to each other by id but there can be many
-   on the page at the same time (accordion elements, sliders, etc).
-
-A prefix is required and included by default.  You can change what the prefix is by adding it in.
-
-```csharp
-//Use this when you don't have any information to go off of or don't want that to be public
-var id = Utilities.GetValidHtmlId();
-//Generates something like this: "id12810faad82640c09a9025c9f4909345"
-
-//Use this to pass in an existing GUID
-id = Utilities.GetValidHtmlId(new Guid("aeda0af0-dbc7-4d83-a568-557d27074781"));
-//Generates: "idaeda0af0dbc74d83a568557d27074781"
-
-//                          Prefix ↓   Suffix ↓
-id = Utilities.GetValidHtmlId(44, "id__", "__suffix");
-//Generates: "id__44__suffix"
-```
-
 ### Email validation
 
 This utility attempts to validate email emails by checking for formatting and also checking a
@@ -124,6 +103,56 @@ Utilities.Url.HasValidTopLevelDomain(new Uri("https://foobar.web"));
 //Returns false
 ```
 
+### ID Utilities
+
+The ID utilities are meant to quickly get, validate, and return valid id attributes.
+
+#### Generate IDs
+
+This is used when creating elements which need to refer to each other by id but there can be many
+on the page at the same time (accordion elements, sliders, etc).
+
+A prefix is required and included by default.  You can change what the prefix is by adding it in. As suffix may also be included.
+
+```C#
+//Generates a valid id attribute value based on a guid with a prefix of "id"
+//example: Returns id02bfd4e04f0b43f9bf407d3162db9289 (generated from new Guid)
+Utilities.Id.GetValidHtmlId();
+
+//Formats various types of data into a valid id value
+// types include Guid, int, uint, long, ulong
+// also includes:                |    prefix   suffix
+//                               ↓       ↓        ↓                 
+Utilities.Id.GetValidHtmlId(4444, "foo_", "_bar");
+// ↑ Returns "foo_4444_bar"
+```
+
+#### Validate IDs
+This utility can also be used to validate IDs which can be specified in an unsafe way (user input).
+```C#
+string? nullId = null;
+Utilities.Id.IsValidId(nullId);
+// ↑ Returns false
+
+Utilities.Id.IsValidId("bob dole");
+// ↑ Returns false
+
+Utilities.ID.IsValidId("bob_dole");
+// ↑ Returns true
+```
+
+It can also parse an unsafe, nullable proposed id value and ensure a non-nullable string is output.
+```C#
+Utilities.Id.TryGetAsValidId("bob dole", TryGetValidIdDefaultStrategyEnum.EmptyOnInvalid, var out thisWillBeEmpty);
+// ↑ Returns false | thisWilBeEmpty will return string.Empty - this is so that other transformations can be handled
+
+Utilities.Id.TryGetAsValidId("foo bar", TryGetValidIdDefaultStrategyEnum.GenerateOnInvalid, var out thisWillBeAGeneratedId);
+// ↑ Returns false | thisWillBeAGeneratedId will return default value from GetValidHtmlId()
+
+Utilities.Id.TryGetAsValidId("foo_bar_baz", TryGetValidIdDefaultStrategyEnum.GenerateOnInvalid, var out thisWillBeFooBarBaz);
+// ↑ Returns true | thisWillBeFooBarBaz will be "foo_bar_baz"
+```
+
 ### Youtube Utilities
 
 #### ID Validation
@@ -132,9 +161,9 @@ Checks if the given ID is valid based on matching the regex pattern: `[a-zA-Z0-9
 
 ```csharp
 Utilities.Youtube.IsValidYoutubeId("SrN4A9rVXj0");
-//Returns true
+// ↑ Returns true
 Utilities.Youtube.IsValidYoutubeId("foo-bar");
-//Returns false
+// ↑ Returns false
 ```
 
 #### Thumbnail
