@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using FriendToNetWebDevelopers.MicroUtilities.Enum;
 using FriendToNetWebDevelopers.MicroUtilities.Exception;
 
 namespace FriendToNetWebDevelopers.MicroUtilities;
@@ -84,6 +85,38 @@ public static partial class Utilities
         {
             if (!_isValidIdPrefix(prefix)) throw new BadIdPrefixException(prefix);
             return _finalIdValidate($"{prefix.Trim()}{id:0}{suffix.Trim()}");
+        }
+
+        /// <summary>
+        /// Checks if an id is valid
+        /// </summary>
+        /// <param name="id">The proposed id attribute value</param>
+        /// <returns></returns>
+        public static bool IsValidId(string? id) => _isValidId(id);
+
+        /// <summary>
+        /// Ensures the proposed id attribute value is valid. If invalid, it uses the fallback strategies to ensure the output is always non-nullable
+        /// </summary>
+        /// <param name="id">The proposed id attribute value</param>
+        /// <param name="fallbackStrategy">empty or generate</param>
+        /// <param name="validId">the output</param>
+        /// <returns></returns>
+        /// <exception cref="BadIdFormatException"></exception>
+        public static bool TryGetAsValidId(string? id, TryGetValidIdDefaultStrategyEnum fallbackStrategy, out string validId)
+        {
+            if (_isValidId(id))
+            {
+                validId = id!;
+                return true;
+            }
+
+            validId = fallbackStrategy switch
+            {
+                TryGetValidIdDefaultStrategyEnum.EmptyOnInvalid => string.Empty,
+                TryGetValidIdDefaultStrategyEnum.GenerateOnInvalid => GetValidHtmlId(),
+                _ => throw new BadIdFormatException(fallbackStrategy.ToString())
+            };
+            return false;
         }
         
         private static string _finalIdValidate(string id)
