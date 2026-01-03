@@ -40,6 +40,19 @@ public static partial class Utilities
             return HttpUtility.UrlEncode(segment) == segment && UrlSegmentRegex().IsMatch(segment);
         }
 
+        /// <summary>
+        /// Validates whether the provided username is a valid userinfo component according to RFC 3986.
+        /// </summary>
+        /// <param name="username">The username to validate. Can be null or empty.</param>
+        /// <param name="emptyIsOkay">Indicates whether an empty or null username is considered valid.</param>
+        /// <returns>True if the username is valid; otherwise, false.</returns>
+        public static bool IsValidUsername(string? username, bool emptyIsOkay = false)
+        {
+            if (string.IsNullOrEmpty(username)) return emptyIsOkay;
+            // RFC 3986 userinfo: unreserved / pct-encoded / sub-delims / ":"
+            return UserInfoRegex().IsMatch(username);
+        }
+
         #region Sluggery
 
         /// <summary>
@@ -154,6 +167,9 @@ public static partial class Utilities
     
     [GeneratedRegex("^[a-zA-Z][-a-zA-Z0-9_]*$")]
     private static partial Regex UrlSegmentRegex();
+    
+    [GeneratedRegex(@"^[a-zA-Z0-9\-\._~!$&'()*+,;=:]+$")]
+    private static partial Regex UserInfoRegex();
     
     [GeneratedRegex("^[a-z0-9]+(?:-[a-z0-9]+)*$")]
     private static partial Regex UrlSlugRegex();
