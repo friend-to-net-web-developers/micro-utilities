@@ -33,6 +33,41 @@ public class UriUtilities
     }
 
     [Test]
+    public void IsValidUsername()
+    {
+        Assert.Multiple(() =>
+        {
+            // Null and Empty checks
+            Assert.That(Utilities.Url.IsValidUsername(null), Is.False, "Null should be false by default");
+            Assert.That(Utilities.Url.IsValidUsername(null, true), Is.True,
+                "Null should be true if emptyIsOkay is true");
+            Assert.That(Utilities.Url.IsValidUsername(""), Is.False, "Empty should be false by default");
+            Assert.That(Utilities.Url.IsValidUsername("", true), Is.True,
+                "Empty should be true if emptyIsOkay is true");
+
+            // Valid RFC 3986 UserInfo characters
+            Assert.That(Utilities.Url.IsValidUsername("user"), Is.True);
+            Assert.That(Utilities.Url.IsValidUsername("user123"), Is.True);
+            Assert.That(Utilities.Url.IsValidUsername("user.name"), Is.True);
+            Assert.That(Utilities.Url.IsValidUsername("user_name"), Is.True);
+            Assert.That(Utilities.Url.IsValidUsername("user-name"), Is.True);
+            Assert.That(Utilities.Url.IsValidUsername("user~name"), Is.True);
+            Assert.That(Utilities.Url.IsValidUsername("user:password"), Is.True, "Colon is valid in userinfo");
+            Assert.That(Utilities.Url.IsValidUsername("!$&'()*+,;="), Is.True, "Sub-delims are valid");
+
+            // Invalid characters
+            Assert.That(Utilities.Url.IsValidUsername("user name"), Is.False, "Spaces are invalid");
+            Assert.That(Utilities.Url.IsValidUsername("user@host"), Is.False,
+                "At-sign is the delimiter, not part of username");
+            Assert.That(Utilities.Url.IsValidUsername("user#fragment"), Is.False, "Hash is invalid");
+            Assert.That(Utilities.Url.IsValidUsername("user/path"), Is.False, "Slash is invalid");
+            Assert.That(Utilities.Url.IsValidUsername("user?query"), Is.False, "Question mark is invalid");
+            Assert.That(Utilities.Url.IsValidUsername("user[bracket]"), Is.False,
+                "Square brackets are invalid in userinfo");
+        });
+    }
+
+    [Test]
     public void TryToConvertToSlug()
     {
         var okay = Utilities.Url.TryToConvertToSlug("foo-bar", out var fooBarOkay);
@@ -88,7 +123,7 @@ public class UriUtilities
         };
         Assert.That(Utilities.Url.BuildUrl("/baz", queryObject), Is.EqualTo("/baz?foo=bar&bob=dole"));
     }
-    
+
     [Test]
     public void BuildUrl_KVP()
     {
