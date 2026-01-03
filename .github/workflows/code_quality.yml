@@ -24,5 +24,6 @@ jobs:
         with:
           args: |
             --linter,qodana-cdnet
+            --solution,MicroUtilities.sln
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
