@@ -23,7 +23,7 @@ jobs:
         uses: JetBrains/qodana-action@v2025.2
         with:
           args: |
-            --linter,qodana-cdnet
+            --linter,qodana-cdnet,
             --solution,MicroUtilities.sln
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
