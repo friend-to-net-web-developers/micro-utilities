@@ -76,6 +76,27 @@ var okay = Utilities.Url.TryToConvertToSlug(null, out var slug);
 // slug = ""
 ```
 
+#### Uri Username Validation
+
+This is used to validate usernames for use in urls as defined by [RFC 3986](http://www.faqs.org/rfcs/rfc3986.html).
+
+```csharp
+
+var okay = Utilities.Url.IsValidUsername("foobar");
+//returns true
+
+var okay = Utilities.Url.IsValidUsername("foo bar");
+//returns false
+
+var okay = Utilities.Url.IsValidUsername(null);
+//returns false
+
+var okay = Utilities.Url.IsValidUsername(null, true);
+//returns true                    because this ↑↑↑↑ allows for null values
+
+```
+
+
 #### Url Building Based On A Query Object
 
 Use this to take a known base url (as a string) and dynamically append a query string to it
