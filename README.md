@@ -3,7 +3,7 @@
 A set of tiny utilities to help on web projects
 
 ## Installation
-`Install-Package FriendToNetWebDevelopers.HtmlAttributeDictionary`
+`Install-Package FriendToNetWebDevelopers.MicroUtilities`
 
 ## Usage & Available Utilities
 
