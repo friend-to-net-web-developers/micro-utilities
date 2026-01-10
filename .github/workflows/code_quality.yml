@@ -22,7 +22,7 @@ jobs:
       - name: 'Qodana Scan'
         uses: JetBrains/qodana-action@v2024.3
         with:
-          args: --linter,jetbrains/qodana-dotnet-community:2024.3,--solution,MicroUtilities.sln
+          args: --linter,jetbrains/qodana-cdnet:2024.3,--solution,MicroUtilities.sln
           upload-result: true
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
