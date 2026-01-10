@@ -8,13 +8,13 @@ public class UriUtilities
     {
         Assert.Multiple(() =>
         {
-            Assert.That(Utilities.Url.PathSegmentIsValid("foo"), Is.True);
-            Assert.That(Utilities.Url.PathSegmentIsValid(null), Is.False);
-            Assert.That(Utilities.Url.PathSegmentIsValid(null, true), Is.False);
-            Assert.That(Utilities.Url.PathSegmentIsValid("", true), Is.True);
-            Assert.That(Utilities.Url.PathSegmentIsValid("@foo"), Is.False);
-            Assert.That(Utilities.Url.PathSegmentIsValid(" "), Is.False);
-            Assert.That(Utilities.Url.PathSegmentIsValid("Foo Bar"), Is.False);
+            Assert.That(Utilities.Url.IsValidPathSegment("foo"), Is.True);
+            Assert.That(Utilities.Url.IsValidPathSegment(null), Is.False);
+            Assert.That(Utilities.Url.IsValidPathSegment(null, true), Is.False);
+            Assert.That(Utilities.Url.IsValidPathSegment("", true), Is.True);
+            Assert.That(Utilities.Url.IsValidPathSegment("@foo"), Is.False);
+            Assert.That(Utilities.Url.IsValidPathSegment(" "), Is.False);
+            Assert.That(Utilities.Url.IsValidPathSegment("Foo Bar"), Is.False);
         });
     }
 
@@ -64,6 +64,32 @@ public class UriUtilities
             Assert.That(Utilities.Url.IsValidUsername("user?query"), Is.False, "Question mark is invalid");
             Assert.That(Utilities.Url.IsValidUsername("user[bracket]"), Is.False,
                 "Square brackets are invalid in userinfo");
+        });
+    }
+
+    [Test]
+    public void IsValidQueryParameterName()
+    {
+        Assert.Multiple(() =>
+        {
+            // Valid names
+            Assert.That(Utilities.Url.IsValidQueryParameterName("foo"), Is.True);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("foo_bar"), Is.True);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("foo.bar"), Is.True);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("foo-bar"), Is.True);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("FOO123"), Is.True);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("_foo"), Is.True);
+
+            // Invalid names
+            Assert.That(Utilities.Url.IsValidQueryParameterName(null), Is.False);
+            Assert.That(Utilities.Url.IsValidQueryParameterName(""), Is.False);
+            Assert.That(Utilities.Url.IsValidQueryParameterName(" "), Is.False);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("foo bar"), Is.False);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("foo@bar"), Is.False);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("foo=bar"), Is.False);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("foo?bar"), Is.False);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("foo&bar"), Is.False);
+            Assert.That(Utilities.Url.IsValidQueryParameterName("foo!"), Is.False);
         });
     }
 

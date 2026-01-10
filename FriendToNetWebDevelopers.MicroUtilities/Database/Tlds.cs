@@ -1,9 +1,18 @@
 ﻿namespace FriendToNetWebDevelopers.MicroUtilities.Database;
 
+/// <summary>
+/// Represents a utility class for working with top-level domains (TLDs).
+/// </summary>
+/// <remarks>
+/// The Tlds class provides functionality and utilities related to
+/// handling and managing top-level domains in various contexts.
+/// This class is defined as static and cannot be instantiated.
+/// </remarks>
+/// <seealso href="https://www.icann.org/en/contracted-parties/registry-operators/resources/list-of-top-level-domains"/>
 public static class Tlds
 {
     public const string Domains = @"
-# Version 2025101700, Last Updated Fri Oct 17 07:07:02 2025 UTC
+# Version 2026011000, Last Updated Sat Jan 10 07:07:01 2026 UTC
 AAA
 AARP
 ABB
@@ -349,7 +358,6 @@ DOWNLOAD
 DRIVE
 DTV
 DUBAI
-DUNLOP
 DUPONT
 DURBAN
 DVAG

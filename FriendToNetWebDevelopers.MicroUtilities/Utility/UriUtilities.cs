@@ -12,6 +12,7 @@ public static partial class Utilities
         private const string SingleDot = ".";
         private const string DoubleDot = "..";
 
+        
         /// <summary>
         /// Uri resource is built into a string.<br/>
         /// In debug mode (localhost), a port number is included.
@@ -25,14 +26,20 @@ public static partial class Utilities
                 ? url.GetComponents(UriComponents.AbsoluteUri & ~UriComponents.Port, UriFormat.SafeUnescaped)
                 : url.GetComponents(UriComponents.AbsoluteUri, UriFormat.SafeUnescaped);
         }
+        
+        [Obsolete("Use IsValidPathSegment instead", false)]
+        public static bool PathSegmentIsValid(string? segment, bool emptyIsOkay = false) => IsValidPathSegment(segment, emptyIsOkay);
 
         /// <summary>
-        /// Checks the proposed url segment to see if it is valid
+        /// Determines whether a given string is a valid path segment.
         /// </summary>
-        /// <param name="segment"></param>
-        /// <param name="emptyIsOkay"></param>
-        /// <returns></returns>
-        public static bool PathSegmentIsValid(string? segment, bool emptyIsOkay = false)
+        /// <param name="segment">The path segment to validate. It can be null or empty.</param>
+        /// <param name="emptyIsOkay">Specifies whether an empty segment is considered valid.</param>
+        /// <returns>
+        /// <c>true</c> if the segment is valid; otherwise, <c>false</c>.
+        /// A segment is considered valid if it is URL-encoded and matches the allowed segment pattern.
+        /// </returns>
+        public static bool IsValidPathSegment(string? segment, bool emptyIsOkay = false)
         {
             if (segment == null) return false;
             if (string.IsNullOrEmpty(segment)) return emptyIsOkay;
@@ -51,6 +58,16 @@ public static partial class Utilities
             if (string.IsNullOrEmpty(username)) return emptyIsOkay;
             // RFC 3986 userinfo: unreserved / pct-encoded / sub-delims / ":"
             return UserInfoRegex().IsMatch(username);
+        }
+
+        /// <summary>
+        /// Validates whether the provided name is a valid query parameter name.
+        /// </summary>
+        /// <param name="name">The query parameter name to validate.</param>
+        /// <returns>True if the name is valid; otherwise, false.</returns>
+        public static bool IsValidQueryParameterName(string? name)
+        {
+            return !string.IsNullOrWhiteSpace(name) && UrlQueryParameterNameRegex().IsMatch(name);
         }
 
         #region Sluggery
@@ -176,5 +193,8 @@ public static partial class Utilities
     
     [GeneratedRegex("[^a-z0-9\\-]")]
     private static partial Regex UrlSlugReplaceRegex();
-    
+
+    [GeneratedRegex(@"^[a-zA-Z0-9_.-]+$")]
+    private static partial Regex UrlQueryParameterNameRegex();
+
 }
