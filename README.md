@@ -1,11 +1,10 @@
 # Micro Utilities by Friend to .NET Web Developers
 
 ![.NET Test](https://github.com/FriendToNetWebDevelopers/micro-utilities/actions/workflows/dotnet-test-on-pr-net.yml/badge.svg)
-![Qodana](https://github.com/FriendToNetWebDevelopers/micro-utilities/actions/workflows/code_quality.yml/badge.svg)
 
 ## Status
+
 - **Unit Tests:** [Latest Test Results](https://github.com/FriendToNetWebDevelopers/micro-utilities/actions/workflows/dotnet-test-on-pr-net.yml)
-- **Code Quality:** [Qodana Report](https://github.com/FriendToNetWebDevelopers/micro-utilities/actions/workflows/code_quality.yml)
 
 ## Summary
 A set of tiny utilities to help on web projects
