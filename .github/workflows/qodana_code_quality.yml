@@ -31,6 +31,8 @@ jobs:
           QODANA_ENDPOINT: 'https://qodana.cloud'
         with:
           args: |
+            --linter,community-dotnet
+            --within-docker=false
             --solution,MicroUtilities.sln
           # When pr-mode is set to true, Qodana analyzes only the files that have been changed
           pr-mode: false
