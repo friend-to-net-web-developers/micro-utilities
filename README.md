@@ -1,4 +1,12 @@
 # Micro Utilities by Friend to .NET Web Developers
+
+![.NET Test](https://github.com/FriendToNetWebDevelopers/micro-utilities/actions/workflows/dotnet-test-on-pr-net.yml/badge.svg)
+![Qodana](https://github.com/FriendToNetWebDevelopers/micro-utilities/actions/workflows/code_quality.yml/badge.svg)
+
+## Status
+- **Unit Tests:** [Latest Test Results](https://github.com/FriendToNetWebDevelopers/micro-utilities/actions/workflows/dotnet-test-on-pr-net.yml)
+- **Code Quality:** [Qodana Report](https://github.com/FriendToNetWebDevelopers/micro-utilities/actions/workflows/code_quality.yml)
+
 ## Summary
 A set of tiny utilities to help on web projects
 
@@ -81,7 +89,6 @@ var okay = Utilities.Url.TryToConvertToSlug(null, out var slug);
 This is used to validate usernames for use in urls as defined by [RFC 3986](http://www.faqs.org/rfcs/rfc3986.html).
 
 ```csharp
-
 var okay = Utilities.Url.IsValidUsername("foobar");
 //returns true
 
@@ -93,9 +100,34 @@ var okay = Utilities.Url.IsValidUsername(null);
 
 var okay = Utilities.Url.IsValidUsername(null, true);
 //returns true                    because this ↑↑↑↑ allows for null values
-
 ```
 
+#### Uri Path Segment Validation
+
+Determines whether a given string is a valid path segment.
+
+```csharp
+Utilities.Url.IsValidPathSegment("foo");
+//returns true
+
+Utilities.Url.IsValidPathSegment("foo bar");
+//returns false
+
+Utilities.Url.IsValidPathSegment(null);
+//returns false
+```
+
+#### Uri Query Parameter Name Validation
+
+Validates whether the provided name is a valid query parameter name.
+
+```csharp
+Utilities.Url.IsValidQueryParameterName("foo_bar");
+//returns true
+
+Utilities.Url.IsValidQueryParameterName("foo@bar");
+//returns false
+```
 
 #### Url Building Based On A Query Object
 
@@ -209,4 +241,19 @@ Utilities.Youtube.GetYoutubeIframeUrl("SrN4A9rVXj0");
 Utilities.Youtube.GetYoutubeIframeUrl("foo-bar");
 //Throws BadYoutubeIdException
 ```
+
+## Notes & Compatibility
+
+### .NET Version Support
+This library currently supports .NET 8, .NET 9, and .NET 10. 
+Please note that support for **.NET 8** and **.NET 9** is planned to be dropped in the future as they reach their end-of-life. We recommend migrating to **.NET 10** or newer for continued support and security updates.
+
+### Thread Safety
+All utility functions in this library are static and designed to be thread-safe. They do not maintain internal state that could lead to race conditions.
+
+### Performance
+Many of these utilities use `GeneratedRegex` for optimal performance. This ensures that regex patterns are compiled at build time, reducing overhead during execution.
+
+### TLD Updates
+The `HasValidTopLevelDomain` and `IsValidEmail` functions rely on a list of TLDs provided by ICANN/IANA. This list is updated periodically within the library to ensure accuracy.
 
