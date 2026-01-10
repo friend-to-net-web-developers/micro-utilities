@@ -4,8 +4,9 @@
 #-------------------------------------------------------------------------------#
 version: "1.0"
 
-#Specify IDE code to run analysis without container (Applied in CI/CD pipeline)
-ide: QDNET
+#Specify linter to run analysis (Applied in CI/CD pipeline)
+# Using Community edition for .NET
+linter: community-dotnet
 
 #Specify inspection profile for code analysis
 profile:
