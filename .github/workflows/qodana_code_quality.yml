@@ -28,11 +28,9 @@ jobs:
         uses: JetBrains/qodana-action@v2025.3.1
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
-          QODANA_ENDPOINT: 'https://qodana.cloud'
         with:
           args: |
-            --linter,community-dotnet
-            --within-docker=false
+            --linter,qodana-cdnet,
             --solution,MicroUtilities.sln
           # When pr-mode is set to true, Qodana analyzes only the files that have been changed
           pr-mode: false
