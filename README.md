@@ -1,10 +1,10 @@
 # Micro Utilities by Friend to .NET Web Developers
 
-![.NET Test](https://github.com/FriendToNetWebDevelopers/micro-utilities/actions/workflows/dotnet-test-on-pr-net.yml/badge.svg)
+![.NET Test](https://github.com/friend-to-net-web-developers/micro-utilities/actions/workflows/dotnet-test-on-pr-net.yml/badge.svg)
 
 ## Status
 
-- **Unit Tests:** [Latest Test Results](https://github.com/FriendToNetWebDevelopers/micro-utilities/actions/workflows/dotnet-test-on-pr-net.yml)
+- **Unit Tests:** [Latest Test Results](https://github.com/friend-to-net-web-developers/micro-utilities/actions/workflows/dotnet-test-on-pr-net.yml)
 
 ## Summary
 A set of tiny utilities to help on web projects
