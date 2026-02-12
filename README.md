@@ -35,6 +35,32 @@ okay = Utilities.Email.IsValidEmail("foo@bar");
 //returns false
 ```
 
+#### Email Normalization
+
+This utility allows for the normalization of email addresses based on various strategies like removing tags, trimming whitespace, and converting to lowercase.
+
+```csharp
+// Default normalization (All strategies: ToLower, Trim, DropTag, DropDot)
+var result = Utilities.Email.TryGetNormalizedValidEmail("  First.Last+tag@Example.com  ", out var normalized);
+// result = true
+// normalized = "firstlast@example.com"
+
+// Individual strategy: Drop sub-addressing tag only
+result = Utilities.Email.TryGetNormalizedValidEmail("user+tag@example.com", out normalized, TryGetNormalizedValidEmailStrategyEnum.DropTag);
+// result = true
+// normalized = "user@example.com"
+
+// Multiple strategies: Lowercase and Trim
+result = Utilities.Email.TryGetNormalizedValidEmail("  User@Example.com  ", out normalized, TryGetNormalizedValidEmailStrategyEnum.LowerAndTrim);
+// result = true
+// normalized = "user@example.com"
+
+// Skipping internal validation (useful for custom domains or internal systems)
+result = Utilities.Email.TryGetNormalizedValidEmail("admin@internal", out normalized, skipInternalValidation: true);
+// result = true
+// normalized = "admin@internal"
+```
+
 ### Uri Utilities
 
 This utility has to do with validation and generation of urls.
