@@ -12,7 +12,7 @@
 public static class Tlds
 {
     public const string Domains = @"
-# Version 2026011000, Last Updated Sat Jan 10 07:07:01 2026 UTC
+# Version 2026021100, Last Updated Wed Feb 11 07:07:01 2026 UTC
 AAA
 AARP
 ABB
@@ -500,7 +500,6 @@ GODADDY
 GOLD
 GOLDPOINT
 GOLF
-GOO
 GOODYEAR
 GOOG
 GOOGLE
