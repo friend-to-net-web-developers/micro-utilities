@@ -199,8 +199,8 @@ Utilities.Id.GetValidHtmlId();
 
 //Formats various types of data into a valid id value
 // types include Guid, int, uint, long, ulong
-// also includes:                |    prefix   suffix
-//                               ↓       ↓        ↓                 
+// also includes:             |    prefix   suffix
+//                            ↓       ↓        ↓                 
 Utilities.Id.GetValidHtmlId(4444, "foo_", "_bar");
 // ↑ Returns "foo_4444_bar"
 ```
