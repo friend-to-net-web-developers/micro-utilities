@@ -196,5 +196,4 @@ public static partial class Utilities
 
     [GeneratedRegex(@"^[a-zA-Z0-9_.-]+$")]
     private static partial Regex UrlQueryParameterNameRegex();
-
 }
