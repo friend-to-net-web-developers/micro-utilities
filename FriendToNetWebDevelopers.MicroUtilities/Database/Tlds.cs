@@ -12,7 +12,7 @@
 public static class Tlds
 {
     public const string Domains = @"
-# Version 2026021100, Last Updated Wed Feb 11 07:07:01 2026 UTC
+# Version 2026030400, Last Updated Wed Mar  4 07:07:01 2026 UTC
 AAA
 AARP
 ABB
@@ -1263,7 +1263,6 @@ WINDOWS
 WINE
 WINNERS
 WME
-WOLTERSKLUWER
 WOODSIDE
 WORK
 WORKS

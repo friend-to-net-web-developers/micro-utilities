@@ -16,7 +16,7 @@ A set of tiny utilities to help on web projects
 
 For each of these, you'll need to include this.
 ```csharp
-using FriendToNetWebDeveloper.MicroUtilities;
+using FriendToNetWebDevelopers.MicroUtilities;
 ```
 
 ### Email validation
@@ -267,17 +267,72 @@ Utilities.Youtube.GetYoutubeIframeUrl("foo-bar");
 //Throws BadYoutubeIdException
 ```
 
+### Variable & Class Naming Utilities
+
+This utility provides methods to identify, convert, and generate variable and class names according to various naming conventions.
+
+#### Format Detection
+Identify the naming convention of a given string. Supported types include `CamelCase`, `PascalCase`, `SnakeCase`, `ScreamingSnakeCase`, `KebabCase`, `TrainCase`, `Unicase`, and `TrollCase`.
+
+```csharp
+var type = Utilities.Variable.GetVariableFormat("snake_case_example");
+// returns ResultsVariableNameTypeEnum.SnakeCase
+
+var isCamel = "camelCase".IsVariableName(ResultsVariableNameTypeEnum.CamelCase);
+// returns true
+```
+
+#### Conversion & "Forced" Formatting
+Convert between naming conventions. If a string doesn't follow a strict convention (e.g., has spaces or special characters), it is identified as `Words` and can still be converted.
+
+```csharp
+// Convert to PascalCase
+var pascal = Utilities.Variable.ConvertToPascalCase("hello-world").result;
+// returns "HelloWorld"
+
+// Force conversion from a sentence
+var camel = "This is a test".ConvertTo(RequestedVariableNameTypeEnum.CamelCase).result;
+// returns "thisIsATest"
+
+// Title Case (follows standard English rules for minor words)
+var title = Utilities.Variable.ConvertToTitleWords("a tale of two cities").result;
+// returns "A Tale of Two Cities"
+
+// Sentence Case
+var sentence = Utilities.Variable.ConvertToSentenceWords("snake_case_variable").result;
+// returns "Snake case variable"
+```
+
+#### Naming from Metadata
+Generate variable or class names directly from objects, types, or reflection metadata.
+
+```csharp
+var myInstance = new MyCustomClass();
+
+// To variable name (camelCase by default)
+string varName = myInstance.ToVariableName(); 
+// returns "myCustomClass"
+
+// To class name (PascalCase)
+string className = typeof(MyCustomClass).ToClassName();
+// returns "MyCustomClass"
+
+// Handles generic types (strips arity)
+string listName = typeof(List<int>).ToVariableName();
+// returns "list"
+```
+
 ## Notes & Compatibility
 
 ### .NET Version Support
-This library currently supports .NET 8, .NET 9, and .NET 10. 
+This library supports .NET 8, .NET 9, and .NET 10. 
 Please note that support for **.NET 8** and **.NET 9** is planned to be dropped in the future as they reach their end-of-life. We recommend migrating to **.NET 10** or newer for continued support and security updates.
 
 ### Thread Safety
 All utility functions in this library are static and designed to be thread-safe. They do not maintain internal state that could lead to race conditions.
 
 ### Performance
-Many of these utilities use `GeneratedRegex` for optimal performance. This ensures that regex patterns are compiled at build time, reducing overhead during execution.
+Many of these utilities use `GeneratedRegex` for optimal performance.
 
 ### TLD Updates
 The `HasValidTopLevelDomain` and `IsValidEmail` functions rely on a list of TLDs provided by ICANN/IANA. This list is updated periodically within the library to ensure accuracy.
