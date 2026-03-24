@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using FriendToNetWebDevelopers.MicroUtilities.Database;
@@ -7,7 +9,7 @@ namespace FriendToNetWebDevelopers.MicroUtilities;
 
 public static partial class Utilities
 {
-    public static class Url
+    public static partial class Url
     {
         private const string SingleDot = ".";
         private const string DoubleDot = "..";
@@ -158,7 +160,7 @@ public static partial class Utilities
         /// <summary>
         /// Checks if the Top-level domain within the host of the given URI is a valid domain
         /// </summary>
-        /// <param name="uri">The Uri resource to check against</param>
+        /// <param name="uri">The Uri resource to check against (ASCII/punycode)</param>
         /// <param name="okayIfNotDnsType">This is for catching edge cases like disallowing ipv4 hosts to get through.  default = true</param>
         /// <remarks>File pulled from https://data.iana.org/TLD/tlds-alpha-by-domain.txt</remarks>
         /// <returns></returns>
@@ -173,8 +175,72 @@ public static partial class Utilities
             return false;
         }
 
-        
+        /// <summary>
+        /// Attempts to normalize and convert a domain name to its Punycode and Unicode representations.
+        /// </summary>
+        /// <param name="inputDomain">The input domain name to be normalized and converted.</param>
+        /// <param name="normalizedDomainPunycode">The output parameter where the Punycode representation of the normalized domain is stored if successful, otherwise null.</param>
+        /// <param name="normalizedDomainUnicode">The output parameter where the Unicode representation of the normalized domain is stored if successful, otherwise null.</param>
+        /// <param name="skipInternalValidation">If true, skips internal validation of the domain's validity.</param>
+        /// <returns>A boolean indicating whether the normalization and conversion were successful.</returns>
+        public static bool TryNormalizeAndPunycodeDomain(
+            string? inputDomain,
+            [NotNullWhen(true)] out string? normalizedDomainPunycode,
+            [NotNullWhen(true)] out string? normalizedDomainUnicode,
+            bool skipInternalValidation = false)
+        {
+            if (string.IsNullOrWhiteSpace(inputDomain))
+            {
+                normalizedDomainPunycode = null;
+                normalizedDomainUnicode = null;
+                return false;
+            }
+            
+            var proposedUnicode = inputDomain.Trim().Trim('.');
+            var idn = new IdnMapping();
+            try
+            {
+                normalizedDomainPunycode = idn.GetAscii(proposedUnicode).ToLowerInvariant();
+            }
+            catch
+            {
+                normalizedDomainPunycode = null;
+                normalizedDomainUnicode = null;
+                return false;
+            }
+            
+            var matches = PunycodeDomainMatchRegex().IsMatch(normalizedDomainPunycode);
+            if (!matches)
+            {
+                normalizedDomainPunycode = null;
+                normalizedDomainUnicode = null;
+                return false;
+            }
+
+            if (!skipInternalValidation && !HasValidTopLevelDomain(new Uri($"https://{normalizedDomainPunycode}")))
+            {
+                normalizedDomainPunycode = null;
+                normalizedDomainUnicode = null;
+                return false;
+            }
+
+            try
+            {
+                normalizedDomainUnicode = idn.GetUnicode(normalizedDomainPunycode);
+                return true;
+            }
+            catch
+            {
+                normalizedDomainPunycode = null;
+                normalizedDomainUnicode = null;
+                return false;
+            }
+
+        }
     }
+    
+    [GeneratedRegex(@"^([a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?$", RegexOptions.IgnoreCase)]
+    private static partial Regex PunycodeDomainMatchRegex();
     
     [GeneratedRegex("[A-Z]")]
     private static partial Regex UpperCaseMatchRegex();

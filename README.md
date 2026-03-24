@@ -181,6 +181,22 @@ Utilities.Url.HasValidTopLevelDomain(new Uri("https://foobar.web"));
 //Returns false
 ```
 
+#### Punycode & Internationalized Domain Normalization
+
+Attempts to normalize and convert a domain name to its Punycode and Unicode representations.
+
+```csharp
+var success = Utilities.Url.TryNormalizeAndPunycodeDomain("παράδειγμα.ελ", out var puny, out var uni);
+// success = true
+// puny = "xn--hxajbheg2az3al.xn--qxam"
+// uni = "παράδειγμα.ελ"
+
+success = Utilities.Url.TryNormalizeAndPunycodeDomain(" .EXAMPLE.com. ", out var puny, var out uni);
+// success = true
+// puny = "example.com"
+// uni = "example.com"
+```
+
 ### ID Utilities
 
 The ID utilities are meant to quickly get, validate, and return valid id attributes.
