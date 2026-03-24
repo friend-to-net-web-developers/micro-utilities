@@ -162,4 +162,59 @@ public class UriUtilities
         var url = Utilities.Url.BuildUrl("/baz", queryObject);
         Assert.That(url, Is.EqualTo("/baz?foo[]=bar&foo[]=baz&bob=dole"));
     }
+    [Test]
+    public void TryNormalizeAndPunycodeDomain()
+    {
+        Assert.Multiple(() =>
+        {
+            // Simple domain
+            Assert.That(Utilities.Url.TryNormalizeAndPunycodeDomain("example.com", out var puny, out var uni), Is.True);
+            Assert.That(puny, Is.EqualTo("example.com"));
+            Assert.That(uni, Is.EqualTo("example.com"));
+
+            // Internationalized domain (.ελ -> xn--qxam)
+            Assert.That(Utilities.Url.TryNormalizeAndPunycodeDomain("παράδειγμα.ελ", out puny, out uni), Is.True);
+            Assert.That(puny, Is.EqualTo("xn--hxajbheg2az3al.xn--qxam"));
+            Assert.That(uni, Is.EqualTo("παράδειγμα.ελ"));
+
+            // Another one from TLDs (.бг -> xn--90ae)
+            Assert.That(Utilities.Url.TryNormalizeAndPunycodeDomain("сайт.бг", out puny, out uni), Is.True);
+            Assert.That(puny, Is.EqualTo("xn--80aswg.xn--90ae"));
+            Assert.That(uni, Is.EqualTo("сайт.бг"));
+
+            // Normalize: trim dots and spaces
+            Assert.That(Utilities.Url.TryNormalizeAndPunycodeDomain(" .example.com. ", out puny, out uni), Is.True);
+            Assert.That(puny, Is.EqualTo("example.com"));
+
+            // Invalid domain
+            Assert.That(Utilities.Url.TryNormalizeAndPunycodeDomain("not a domain", out puny, out uni), Is.False);
+            Assert.That(puny, Is.Null);
+            Assert.That(uni, Is.Null);
+        });
+    }
+
+    [Test]
+    public void PunycodeDomainMatchRegex_ShouldMatchAllTlds()
+    {
+        var method = typeof(Utilities).GetMethod("PunycodeDomainMatchRegex",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Assert.That(method, Is.Not.Null, "Could not find PunycodeDomainMatchRegex method via reflection.");
+
+        var regex = (System.Text.RegularExpressions.Regex)method!.Invoke(null, null)!;
+
+        using var reader = new StringReader(FriendToNetWebDevelopers.MicroUtilities.Database.Tlds.Domains);
+        while (reader.ReadLine() is { } line)
+        {
+            line = line.Trim();
+            if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#')) continue;
+
+            // PunycodeDomainMatchRegex expects a full domain (with dots),
+            // but we can test if the TLD itself matches the segment pattern if we adapt it or just append it to a dummy domain.
+            // The regex is: ^([a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?$
+            // It requires at least one dot.
+
+            var dummyDomain = $"example.{line.ToLowerInvariant()}";
+            Assert.That(regex.IsMatch(dummyDomain), Is.True, $"TLD '{line}' failed the regex match in dummy domain '{dummyDomain}'");
+        }
+    }
 }
