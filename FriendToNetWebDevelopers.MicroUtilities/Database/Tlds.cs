@@ -9,10 +9,11 @@
 /// This class is defined as static and cannot be instantiated.
 /// </remarks>
 /// <seealso href="https://www.icann.org/en/contracted-parties/registry-operators/resources/list-of-top-level-domains"/>
+/// <seealso href="https://data.iana.org/TLD/tlds-alpha-by-domain.txt"/>
 public static class Tlds
 {
     public const string Domains = @"
-# Version 2026030400, Last Updated Wed Mar  4 07:07:01 2026 UTC
+# Version 2026032400, Last Updated Tue Mar 24 07:07:01 2026 UTC
 AAA
 AARP
 ABB
