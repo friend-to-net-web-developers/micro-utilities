@@ -35,30 +35,65 @@ okay = Utilities.Email.IsValidEmail("foo@bar");
 //returns false
 ```
 
-#### Email Normalization
+#### Email Normalization (Punycode & Unicode Support)
 
-This utility allows for the normalization of email addresses based on various strategies like removing tags, trimming whitespace, and converting to lowercase.
+This utility allows for the normalization of email addresses based on various strategies like removing tags, trimming whitespace, and converting to lowercase. It also provides full support for Internationalized Domain Names (IDN) by converting them to Punycode.
 
 ```csharp
 // Default normalization (All strategies: ToLower, Trim, DropTag, DropDot)
-var result = Utilities.Email.TryGetNormalizedValidEmail("  First.Last+tag@Example.com  ", out var normalized);
-// result = true
-// normalized = "firstlast@example.com"
+// Note: This method replaces the deprecated TryGetNormalizedValidEmail
+var okay = Utilities.Email.TryGetNormalizedValidPunyEmail("  First.Last+tag@München.de  ", out var punyResult, out var annotation);
+// okay = true
+// punyResult.Unicode = "firstlast@münchen.de"
+// punyResult.Punycode = "firstlast@xn--mnchen-3ya.de"
+// punyResult.IsSuspicious = false
 
 // Individual strategy: Drop sub-addressing tag only
-result = Utilities.Email.TryGetNormalizedValidEmail("user+tag@example.com", out normalized, TryGetNormalizedValidEmailStrategyEnum.DropTag);
-// result = true
-// normalized = "user@example.com"
+okay = Utilities.Email.TryGetNormalizedValidPunyEmail("user+tag@example.com", TryGetNormalizedValidEmailStrategyEnum.DropTag, out punyResult, out _);
+// okay = true
+// punyResult.Unicode = "user@example.com"
 
 // Multiple strategies: Lowercase and Trim
-result = Utilities.Email.TryGetNormalizedValidEmail("  User@Example.com  ", out normalized, TryGetNormalizedValidEmailStrategyEnum.LowerAndTrim);
-// result = true
-// normalized = "user@example.com"
+okay = Utilities.Email.TryGetNormalizedValidPunyEmail("  User@Example.com  ", TryGetNormalizedValidEmailStrategyEnum.LowerAndTrim, out punyResult, out _);
+// okay = true
+// punyResult.Unicode = "user@example.com"
 
 // Skipping internal validation (useful for custom domains or internal systems)
-result = Utilities.Email.TryGetNormalizedValidEmail("admin@internal", out normalized, skipInternalValidation: true);
-// result = true
-// normalized = "admin@internal"
+okay = Utilities.Email.TryGetNormalizedValidPunyEmail("admin@internal", TryGetNormalizedValidEmailStrategyEnum.All, out punyResult, out _, skipInternalValidation: true);
+// okay = true
+// punyResult.Unicode = "admin@internal"
+```
+
+### Address Annotation & Security Analysis
+
+The `AddressAnnotator` provides deep inspection of email addresses and URIs to identify suspicious characters (like homoglyphs), Unicode usage, and invalid characters. This is particularly useful for security-sensitive applications to detect potential phishing or spoofing attempts.
+
+```csharp
+var email = "tеst@example.com"; // Contains Cyrillic 'е' (homoglyph)
+var annotation = Utilities.AddressAnnotator.Annotate(email);
+
+if (annotation.ContainsSuspiciousChars) 
+{
+    // Handle potential phishing/spoofing attempt
+    var suspiciousToken = annotation.LocalTokens.First(t => t.IsSuspicious);
+    // suspiciousToken.Char = "е"
+    // suspiciousToken.HomoglyphOf = "e"
+}
+
+// Inspect parts
+// annotation.LocalPart = "tеst"
+// annotation.Domain = "example.com"
+// annotation.ContainsUnicode = true
+// annotation.Mode = InputMode.Email
+```
+
+Extension methods are also available for `string`, `Uri`, and `MailAddress`:
+
+```csharp
+using FriendToNetWebDevelopers.MicroUtilities.Extensions;
+
+var annotation = "user@example.com".Annotate();
+var uriAnnotation = new Uri("https://user:pass@example.com").AnnotateUserInfo();
 ```
 
 ### Uri Utilities
