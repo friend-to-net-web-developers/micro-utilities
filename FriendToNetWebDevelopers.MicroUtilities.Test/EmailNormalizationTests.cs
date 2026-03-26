@@ -1,23 +1,24 @@
 namespace FriendToNetWebDevelopers.MicroUtilities.Test;
 
 using FriendToNetWebDevelopers.MicroUtilities.Enum;
+using FriendToNetWebDevelopers.MicroUtilities.Models;
 
 [TestFixture]
 public class EmailNormalizationTests
 {
     [Test]
-    public void TryGetNormalizedValidEmail_Default_AllStrategies()
+    public void TryGetNormalizedValidPunyEmail_Default_AllStrategies()
     {
         // Default uses TryGetNormalizedValidEmailStrategyEnum.All (ToLower | Trim | DropTag | DropDot)
         var input = "first.last+tag@example.com";
         var expected = "firstlast@example.com";
 
-        var result = Utilities.Email.TryGetNormalizedValidEmail(input, out var normalized);
+        var result = Utilities.Email.TryGetNormalizedValidPunyEmail(input, out var punyResult, out _);
 
         Assert.Multiple(() =>
         {
             Assert.That(result, Is.True);
-            Assert.That(normalized, Is.EqualTo(expected));
+            Assert.That(punyResult?.Unicode, Is.EqualTo(expected));
         });
     }
 
@@ -25,52 +26,49 @@ public class EmailNormalizationTests
     [TestCase("  email@example.com  ", "email@example.com", TryGetNormalizedValidEmailStrategyEnum.Trim)]
     [TestCase("user+tag@example.com", "user@example.com", TryGetNormalizedValidEmailStrategyEnum.DropTag)]
     [TestCase("first.last@example.com", "firstlast@example.com", TryGetNormalizedValidEmailStrategyEnum.DropDot)]
-    public void TryGetNormalizedValidEmail_IndividualStrategies(string input, string expected, TryGetNormalizedValidEmailStrategyEnum strategy)
+    public void TryGetNormalizedValidPunyEmail_IndividualStrategies(string input, string expected, TryGetNormalizedValidEmailStrategyEnum strategy)
     {
-        var result = Utilities.Email.TryGetNormalizedValidEmail(input, out var normalized, strategy);
+        var result = Utilities.Email.TryGetNormalizedValidPunyEmail(input, strategy, out var punyResult, out _);
 
         Assert.Multiple(() =>
         {
             Assert.That(result, Is.True);
-            Assert.That(normalized, Is.EqualTo(expected));
+            Assert.That(punyResult?.Unicode, Is.EqualTo(expected));
         });
     }
 
     [Test]
-    public void TryGetNormalizedValidEmail_NoneStrategy()
+    public void TryGetNormalizedValidPunyEmail_NoneStrategy()
     {
         var input = "user.name+tag@example.com";
-        // Even with None, MailAddress.TryCreate might normalize some aspects (like casing of host depending on implementation, but usually it keeps it if not specified)
-        // Actually, the implementation says: normalized = parsedResult.Address;
-        // MailAddress.Address typically lowercases the host.
         
-        var result = Utilities.Email.TryGetNormalizedValidEmail(input, out var normalized, TryGetNormalizedValidEmailStrategyEnum.None);
+        var result = Utilities.Email.TryGetNormalizedValidPunyEmail(input, TryGetNormalizedValidEmailStrategyEnum.None, out var punyResult, out _);
 
         Assert.Multiple(() =>
         {
             Assert.That(result, Is.True);
             // System.Net.Mail.MailAddress.Address usually lowercases the host part.
-            Assert.That(normalized?.ToLowerInvariant(), Is.EqualTo(input.ToLowerInvariant()));
+            Assert.That(punyResult?.Unicode?.ToLowerInvariant(), Is.EqualTo(input.ToLowerInvariant()));
         });
     }
 
     [Test]
-    public void TryGetNormalizedValidEmail_SkipInternalValidation()
+    public void TryGetNormalizedValidPunyEmail_SkipInternalValidation()
     {
         // "email@example" is invalid by IsValidEmail (no TLD check usually fails it or host check)
         // But MailAddress.TryCreate might accept it.
         var input = "email@example";
         
         // Should fail with internal validation
-        var resultWithValidation = Utilities.Email.TryGetNormalizedValidEmail(input, out _);
+        var resultWithValidation = Utilities.Email.TryGetNormalizedValidPunyEmail(input, out _, out _);
         // Should pass if we skip internal validation (assuming MailAddress accepts it)
-        var resultSkippingValidation = Utilities.Email.TryGetNormalizedValidEmail(input, out var normalized, true);
+        var resultSkippingValidation = Utilities.Email.TryGetNormalizedValidPunyEmail(input, TryGetNormalizedValidEmailStrategyEnum.All, out var punyResult, out _, true);
 
         Assert.Multiple(() =>
         {
             Assert.That(resultWithValidation, Is.False);
             Assert.That(resultSkippingValidation, Is.True);
-            Assert.That(normalized, Is.Not.Null);
+            Assert.That(punyResult?.Unicode, Is.Not.Null);
         });
     }
 
@@ -78,34 +76,34 @@ public class EmailNormalizationTests
     [TestCase("")]
     [TestCase("   ")]
     [TestCase("not-an-email")]
-    public void TryGetNormalizedValidEmail_InvalidInputs_ReturnsFalse(string? input)
+    public void TryGetNormalizedValidPunyEmail_InvalidInputs_ReturnsFalse(string? input)
     {
-        var result = Utilities.Email.TryGetNormalizedValidEmail(input, out var normalized);
+        var result = Utilities.Email.TryGetNormalizedValidPunyEmail(input, out var punyResult, out _);
 
         Assert.Multiple(() =>
         {
             Assert.That(result, Is.False);
-            Assert.That(normalized, Is.Null);
+            Assert.That(punyResult, Is.Null);
         });
     }
 
     [Test]
-    public void TryGetNormalizedValidEmail_StrategyCombinations()
+    public void TryGetNormalizedValidPunyEmail_StrategyCombinations()
     {
         var input = "  user.name+tag@example.com  ";
         
         // Lower + Trim
-        Utilities.Email.TryGetNormalizedValidEmail(input, out var lowerTrim, TryGetNormalizedValidEmailStrategyEnum.LowerAndTrim);
-        Assert.That(lowerTrim, Is.EqualTo("user.name+tag@example.com"));
+        Utilities.Email.TryGetNormalizedValidPunyEmail(input, TryGetNormalizedValidEmailStrategyEnum.LowerAndTrim, out var lowerTrim, out _);
+        Assert.That(lowerTrim?.Unicode, Is.EqualTo("user.name+tag@example.com"));
 
         // DropTag + DropDot
-        Utilities.Email.TryGetNormalizedValidEmail(input, out var tagDot, TryGetNormalizedValidEmailStrategyEnum.DropTagAndDropDot);
+        Utilities.Email.TryGetNormalizedValidPunyEmail(input, TryGetNormalizedValidEmailStrategyEnum.DropTagAndDropDot, out var tagDot, out _);
         // Note: MailAddress.Address (used when DropTag is active) will lowercase the host
-        Assert.That(tagDot, Is.EqualTo("username@example.com").IgnoreCase);
+        Assert.That(tagDot?.Unicode, Is.EqualTo("username@example.com").IgnoreCase);
     }
     
     [Test]
-    public void TryGetNormalizedValidEmail_HandlesColons_WhenSkippingValidation()
+    public void TryGetNormalizedValidPunyEmail_HandlesColons_WhenSkippingValidation()
     {
         // The code has a specific block for stripping colons
         // MailAddress.TryCreate fails if there are colons in the local part UNLESS it's quoted.
@@ -113,14 +111,31 @@ public class EmailNormalizationTests
         
         // IsValidEmail returns false if email contains ':'
         // So we must skip internal validation to reach that block
-        var result = Utilities.Email.TryGetNormalizedValidEmail(input, out var normalized, skipInternalValidation: true);
+        var result = Utilities.Email.TryGetNormalizedValidPunyEmail(input, TryGetNormalizedValidEmailStrategyEnum.All, out var punyResult, out _, skipInternalValidation: true);
         
         Assert.Multiple(() =>
         {
             Assert.That(result, Is.True);
             // The code does Replace(":", "") on the local part.
             // Result will be "\"username\"@example.com" because quotes are preserved by MailAddress.Address
-            Assert.That(normalized, Is.EqualTo("\"username\"@example.com"));
+            Assert.That(punyResult?.Unicode, Is.EqualTo("\"username\"@example.com"));
+        });
+    }
+
+    [Test]
+    public void TryGetNormalizedValidPunyEmail_PunycodeDomain()
+    {
+        var input = "user@xn--mnchen-3ya.de";
+        var expectedUnicode = "user@münchen.de";
+        var expectedPuny = "user@xn--mnchen-3ya.de";
+
+        var result = Utilities.Email.TryGetNormalizedValidPunyEmail(input, out var punyResult, out _);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.True);
+            Assert.That(punyResult?.Unicode, Is.EqualTo(expectedUnicode));
+            Assert.That(punyResult?.Punycode, Is.EqualTo(expectedPuny));
         });
     }
 }
