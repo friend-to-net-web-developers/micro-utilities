@@ -441,12 +441,12 @@ public static partial class Utilities
             }
         }
 
-        private static readonly string[] _titleCaseMinorWords = 
-        { 
+        private static readonly string[] TitleCaseMinorWords =
+        [
             "a", "an", "the", 
             "and", "but", "for", "or", "nor", 
-            "at", "by", "in", "of", "on", "to", "with", "from" 
-        };
+            "at", "by", "in", "of", "on", "to", "with", "from"
+        ];
 
         private static string _internalConvert(string[] words, RequestedVariableNameTypeEnum targetType)
         {
@@ -473,7 +473,7 @@ public static partial class Utilities
                     return string.Join(" ", words.Select((w, i) =>
                     {
                         var lower = w.ToLower();
-                        if (i > 0 && i < words.Length - 1 && _titleCaseMinorWords.Contains(lower))
+                        if (i > 0 && i < words.Length - 1 && TitleCaseMinorWords.Contains(lower))
                         {
                             return lower;
                         }
@@ -487,84 +487,4 @@ public static partial class Utilities
             }
         }
     }
-}
-
-public static class StringExtensions
-{
-    /// <summary>
-    /// Converts the given variable name into the specified target format type.
-    /// </summary>
-    /// <param name="variableName">The variable name to be converted.</param>
-    /// <param name="targetType">The target format type to which the variable name will be converted.</param>
-    /// <returns>A tuple containing the converted variable name, the original format type, and the target format type. The original format type is determined based on the structure of the input variable name.</returns>
-    /// <exception cref="ArgumentException">Thrown when the target format type is <c>Unknown</c>.</exception>
-    /// <exception cref="NotAValidVariableNameException">Thrown when the provided variable name is invalid or its format cannot be determined.</exception>
-    public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) ConvertTo(
-        this string variableName, RequestedVariableNameTypeEnum targetType)
-    {
-        return Utilities.Variable.ConvertTo(variableName, targetType);
-    }
-
-    /// <summary>
-    /// Checks whether the specified string represents a valid variable name.
-    /// </summary>
-    /// <param name="variableName">The string to be validated as a variable name.</param>
-    /// <returns>A boolean value indicating whether the string is a valid variable name. Returns <c>false</c> if the validation fails or the format cannot be determined.</returns>
-    public static bool IsVariableName(this string variableName)
-    {
-        return Utilities.Variable.TryGetVariableFormat(variableName, out var foundType) &&
-               foundType != ResultsVariableNameTypeEnum.Unknown && foundType != ResultsVariableNameTypeEnum.Words;
-    }
-
-    /// <summary>
-    /// Determines if the given variable name conforms to the specified variable format type.
-    /// </summary>
-    /// <param name="variableName">The variable name to be evaluated.</param>
-    /// <param name="ofDesiredType">The desired <see cref="ResultsVariableNameTypeEnum"/> to check against.</param>
-    /// <returns><c>true</c> if the variable name matches the specified format; otherwise, <c>false</c>.</returns>
-    public static bool IsVariableName(this string variableName, ResultsVariableNameTypeEnum ofDesiredType)
-    {
-        var okay = Utilities.Variable.TryGetVariableFormat(variableName, out var foundType);
-        return okay && foundType == ofDesiredType;
-    }
-}
-
-public static class MemberExtensions
-{
-    /// <summary>
-    /// Gets a formatted variable name from a member's name.
-    /// </summary>
-    /// <param name="member">The member to format.</param>
-    /// <param name="targetType">The target variable naming convention.</param>
-    /// <returns>A string representing the member name in the requested format.</returns>
-    public static string ToVariableName(this MemberInfo member, RequestedVariableNameTypeEnum targetType = RequestedVariableNameTypeEnum.CamelCase)
-        => Utilities.Variable.GetVariableName(member, targetType);
-
-    /// <summary>
-    /// Gets a PascalCase formatted class name from a type.
-    /// </summary>
-    /// <param name="type">The type to format.</param>
-    /// <returns>A PascalCase formatted string of the type name.</returns>
-    public static string ToClassName(this Type type)
-        => Utilities.Variable.GetClassName(type);
-}
-
-public static class ObjectExtensions
-{
-    /// <summary>
-    /// Gets a formatted variable name from an object instance's type.
-    /// </summary>
-    /// <param name="obj">The object whose type name will be formatted.</param>
-    /// <param name="targetType">The target variable naming convention.</param>
-    /// <returns>A string representing the instance's type name in the requested format.</returns>
-    public static string ToVariableName(this object obj, RequestedVariableNameTypeEnum targetType = RequestedVariableNameTypeEnum.CamelCase)
-        => Utilities.Variable.GetVariableName(obj, targetType);
-
-    /// <summary>
-    /// Gets a PascalCase formatted class name from an object instance's type.
-    /// </summary>
-    /// <param name="obj">The object whose type name will be formatted.</param>
-    /// <returns>A PascalCase formatted string of the instance's type name.</returns>
-    public static string ToClassName(this object obj)
-        => Utilities.Variable.GetClassName(obj);
 }
