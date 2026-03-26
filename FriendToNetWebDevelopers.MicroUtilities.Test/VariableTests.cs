@@ -1,4 +1,4 @@
-using System.Reflection;
+using FriendToNetWebDevelopers.MicroUtilities.Extensions;
 using FriendToNetWebDevelopers.MicroUtilities.Enum;
 
 namespace FriendToNetWebDevelopers.MicroUtilities.Test;
@@ -152,6 +152,17 @@ public class VariableTests
             Assert.That(instance.ToVariableName(), Is.EqualTo("myTestClass"));
             Assert.That(genericInstance.ToVariableName(), Is.EqualTo("myGenericClass"));
             Assert.That(typeof(MyTestClass).ToVariableName(RequestedVariableNameTypeEnum.SnakeCase), Is.EqualTo("my_test_class"));
+        });
+    }
+
+    [Test]
+    public void StringExtensions_VariableNaming_Works()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That("hello_world".ConvertTo(RequestedVariableNameTypeEnum.CamelCase).result, Is.EqualTo("helloWorld"));
+            Assert.That("camelCase".IsVariableName(), Is.True);
+            Assert.That("Not A Variable".IsVariableName(), Is.False);
         });
     }
 
