@@ -167,7 +167,7 @@ public static partial class Utilities
         public static bool HasValidTopLevelDomain(Uri uri, bool okayIfNotDnsType = true)
         {
             if (uri.HostNameType is not UriHostNameType.Dns || string.IsNullOrEmpty(uri.Host)) return okayIfNotDnsType;
-            var tld = uri.Host.Split('.')[^1].ToUpperInvariant();
+            var tld = uri.DnsSafeHost.Split('.')[^1].ToUpperInvariant();
             if (string.IsNullOrWhiteSpace(tld)) return false;
             //NOTE: I do want this to throw an exception if the file isn't there for some reason
             using var reader = new StringReader(Tlds.Domains);
