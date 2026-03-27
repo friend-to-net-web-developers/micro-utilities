@@ -1,5 +1,5 @@
 ﻿using FriendToNetWebDevelopers.MicroUtilities.Models;
-using FriendToNetWebDevelopers.MicroUtilities.Models.Annotator;
+using FriendToNetWebDevelopers.MicroUtilities.Models.EmailAnnotator;
 
 namespace FriendToNetWebDevelopers.MicroUtilities.Extensions;
 
