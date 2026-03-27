@@ -1,6 +1,6 @@
 using System.Net.Mail;
 using FriendToNetWebDevelopers.MicroUtilities.Extensions;
-using FriendToNetWebDevelopers.MicroUtilities.Models.Annotator;
+using FriendToNetWebDevelopers.MicroUtilities.Models.EmailAnnotator;
 
 namespace FriendToNetWebDevelopers.MicroUtilities.Test;
 
@@ -121,7 +121,7 @@ public class AddressAnnotatorTests
     public void StringExtensions_Annotate_Works()
     {
         var email = "test@example.com";
-        var annotation = email.Annotate();
+        var annotation = email.Annotate(InputMode.Email);
 
         Assert.That(annotation.LocalPart, Is.EqualTo("test"));
     }
