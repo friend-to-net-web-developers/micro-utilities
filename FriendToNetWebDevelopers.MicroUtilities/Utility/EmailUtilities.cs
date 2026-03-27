@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using FriendToNetWebDevelopers.MicroUtilities.Enum;
 using FriendToNetWebDevelopers.MicroUtilities.Extensions;
 using FriendToNetWebDevelopers.MicroUtilities.Models;
-using FriendToNetWebDevelopers.MicroUtilities.Models.Annotator;
+using FriendToNetWebDevelopers.MicroUtilities.Models.EmailAnnotator;
 
 namespace FriendToNetWebDevelopers.MicroUtilities;
 
@@ -185,7 +185,7 @@ public static partial class Utilities
                 return false;
             }
 
-            inputAnnotation = email.Annotate();
+            inputAnnotation = email.Annotate(InputMode.Email);
 
             var okay = MailAddress.TryCreate(email, out var parsedResult);
             if (!okay || parsedResult == null || !skipInternalValidation && !IsValidEmail(parsedResult.Address))

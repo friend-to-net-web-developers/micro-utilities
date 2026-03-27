@@ -1,5 +1,5 @@
 ﻿using System.Globalization;
-using FriendToNetWebDevelopers.MicroUtilities.Models.Annotator;
+using FriendToNetWebDevelopers.MicroUtilities.Models.EmailAnnotator;
 
 namespace FriendToNetWebDevelopers.MicroUtilities.Models;
 
