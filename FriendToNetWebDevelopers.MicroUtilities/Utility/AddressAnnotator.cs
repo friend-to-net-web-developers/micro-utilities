@@ -1,7 +1,7 @@
 ﻿using System.Net.Mail;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using FriendToNetWebDevelopers.MicroUtilities.Models.Annotator;
+using FriendToNetWebDevelopers.MicroUtilities.Models.EmailAnnotator;
 
 namespace FriendToNetWebDevelopers.MicroUtilities;
 

@@ -1,4 +1,4 @@
-﻿namespace FriendToNetWebDevelopers.MicroUtilities.Models.Annotator;
+﻿namespace FriendToNetWebDevelopers.MicroUtilities.Models.EmailAnnotator;
 
 
 public enum CharacterType

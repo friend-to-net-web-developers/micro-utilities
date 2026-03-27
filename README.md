@@ -373,6 +373,43 @@ string listName = typeof(List<int>).ToVariableName();
 // returns "list"
 ```
 
+### Text & Unicode Utilities
+
+Provides advanced character-level analysis and Unicode-safe encoding/decoding. These utilities are particularly useful for handling internationalized text, surrogate pairs, and for security/sanitization tasks.
+
+#### Unicode Escape Encoding & Decoding
+
+Convert between readable Unicode characters and ASCII-compatible escape sequences (`\uXXXX` for BMP, `\UXXXXXXXX` for supplementary planes).
+
+```csharp
+// Encode to escaped ASCII
+var escaped = Utilities.Text.EncodeUnicodeEscapes("A©😀");
+// returns "A\u00A9\U0001F600"
+
+// Decode back to Unicode
+var decoded = Utilities.Text.DecodeUnicodeEscapes("A\\u00A9\\U0001F600");
+// returns "A©😀"
+
+// Extension methods
+var extEscaped = "A©😀".ToUnicodeEscapedAscii();
+var extDecoded = "A\\u00A9\\U0001F600".ToUnicodeDecoded();
+```
+
+#### Text Character Annotation
+
+The `TextAnnotator` provides character-by-character analysis, correctly handling surrogate pairs (e.g., emojis) as single units. It classifies characters into types like `Letter`, `Digit`, `Whitespace`, `Special`, and `Unicode`.
+
+```csharp
+var text = "A 😀 1";
+var tokens = text.Annotate().ToList();
+
+// tokens[0]: "A", Type: Letter, Index: 0
+// tokens[1]: " ", Type: Whitespace, Index: 1
+// tokens[2]: "😀", Type: Unicode, Index: 2, CodePoint: 0x1F600, UnicodeEscape: "\U0001F600"
+// tokens[3]: " ", Type: Whitespace, Index: 4 (Index jumped past surrogate pair)
+// tokens[4]: "1", Type: Digit, Index: 5
+```
+
 ## Notes & Compatibility
 
 ### .NET Version Support
