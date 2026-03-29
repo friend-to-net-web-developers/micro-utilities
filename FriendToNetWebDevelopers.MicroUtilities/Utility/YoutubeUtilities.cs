@@ -7,71 +7,79 @@ namespace FriendToNetWebDevelopers.MicroUtilities;
 public static partial class Utilities
 {
     /// <summary>
-    /// Used to handle miscellaneous youtube-related url tasks.<br/>
-    /// Makes heavy use of Uri building and validation.  Should make life more difficult for a hostile actor. 
+    /// Handles YouTube-related URL tasks including ID validation, thumbnail URL generation,
+    /// and embed URL generation.
     /// </summary>
+    /// <remarks>
+    /// Makes deliberate use of URI building and validation to harden against malformed or
+    /// hostile input.
+    /// </remarks>
     public static partial class Youtube
     {
         /// <summary>
-        /// Gets the default size thumbnail
+        /// Gets the HQ default thumbnail URL for the specified YouTube video.
         /// </summary>
-        /// <param name="youtubeVideoId">youtube id</param>
-        /// <returns></returns>
+        /// <param name="youtubeVideoId">The YouTube video ID to get the thumbnail for.</param>
+        /// <returns>The thumbnail URL string.</returns>
+        /// <exception cref="BadYoutubeIdException">
+        /// Thrown when <paramref name="youtubeVideoId"/> is not a valid YouTube video ID.
+        /// </exception>
         public static string GetYoutubeThumbnail(string youtubeVideoId) =>
-            GetYoutubeThumbnail(youtubeVideoId, YoutubeThumbnailEnum.HqDefault);
+            GetYoutubeThumbnail(youtubeVideoId, YoutubeThumbnail.HqDefault);
 
         /// <summary>
-        /// Gets the youtube thumbnail url based on the provided youtubeVideoId
+        /// Gets the thumbnail URL for the specified YouTube video at the specified quality.
         /// </summary>
-        /// <param name="youtubeVideoId"></param>
-        /// <param name="thumbnail"></param>
-        /// <returns></returns>
-        public static string GetYoutubeThumbnail(string youtubeVideoId, YoutubeThumbnailEnum thumbnail)
+        /// <param name="youtubeVideoId">The YouTube video ID.</param>
+        /// <param name="thumbnail">The desired thumbnail quality.</param>
+        /// <returns>The thumbnail URL string.</returns>
+        /// <exception cref="BadYoutubeIdException">
+        /// Thrown when <paramref name="youtubeVideoId"/> is not a valid YouTube video ID.
+        /// </exception>
+        public static string GetYoutubeThumbnail(string youtubeVideoId, YoutubeThumbnail thumbnail)
         {
             if (!IsValidYoutubeId(youtubeVideoId))
                 throw new BadYoutubeIdException(youtubeVideoId);
-            
+
             return Url.BuildAbsoluteUrl(new Uri($"https://i.ytimg.com/vi/{youtubeVideoId}/{thumbnail}.jpg"));
         }
 
         /// <summary>
-        /// Gets the youtube iframe source url based on the provided youtubeVideoId
+        /// Gets the iframe embed URL for the specified YouTube video.
         /// </summary>
-        /// <param name="youtubeVideoId"></param>
-        /// <returns></returns>
+        /// <param name="youtubeVideoId">The YouTube video ID.</param>
+        /// <returns>The embed URL string.</returns>
+        /// <exception cref="BadYoutubeIdException">
+        /// Thrown when <paramref name="youtubeVideoId"/> is not a valid YouTube video ID.
+        /// </exception>
         public static string GetYoutubeIframeUrl(string youtubeVideoId)
         {
             if (!IsValidYoutubeId(youtubeVideoId)) throw new BadYoutubeIdException(youtubeVideoId);
             return Url.BuildAbsoluteUrl(new Uri($"https://www.youtube.com/embed/{youtubeVideoId}"));
         }
 
-        
-
         /// <summary>
-        /// Checks if a youtube id matches standard youtube forms meaning:
-        /// <ul>
-        /// <li><em>CHECK 1</em> - It is not null or empty <b>AND</b></li>
-        /// <li><em>CHECK 2</em> - It is exactly 11 characters long <b>AND</b></li>
-        /// <li><em>CHECK 3</em> - It matches the pattern "[a-zA-Z0-9_-]{11}"</li>
-        /// </ul>
-        /// In that order
+        /// Determines whether a string is a valid YouTube video ID.
         /// </summary>
-        /// <param name="youtubeVideoId">The Youtube Id to match against</param>
-        /// <returns><ul>
-        /// <li><b>true</b> - If it passes all checks in order</li>
-        /// <li><b>false</b> - In all other cases</li>
-        /// </ul>
-        /// </returns>
+        /// <remarks>
+        /// Validation checks in order:
+        /// <list type="number">
+        ///   <item>Not null or empty.</item>
+        ///   <item>Exactly 11 characters long.</item>
+        ///   <item>Matches the pattern <c>^[a-zA-Z0-9_-]{11}$</c>.</item>
+        /// </list>
+        /// </remarks>
+        /// <param name="youtubeVideoId">The YouTube video ID to validate.</param>
+        /// <returns>True if the ID is valid; otherwise, false.</returns>
         public static bool IsValidYoutubeId(string? youtubeVideoId) =>
-            !string.IsNullOrEmpty(youtubeVideoId) //Not null                  AND
-            && youtubeVideoId.Length == 11 //Is 11 characters long     AND
-            && YoutubeRegex().IsMatch(youtubeVideoId); //Matches the pattern
-        
-        /// <summary>
-        /// The youtube video id matching regex pattern
-        /// </summary>
-        private const string YoutubeIdMatchPattern = "[a-zA-Z0-9_-]{11}";
-        [GeneratedRegex(YoutubeIdMatchPattern)]
-        private static partial Regex YoutubeRegex();
+            !string.IsNullOrEmpty(youtubeVideoId)
+            && youtubeVideoId.Length == 11
+            && YoutubeIdRegex().IsMatch(youtubeVideoId);
+
+        // Anchored with ^ and $ for correctness-by-construction.
+        // The Length == 11 check above provides a redundant guard, but anchoring
+        // ensures the regex is self-contained and safe if ever used independently.
+        [GeneratedRegex("^[a-zA-Z0-9_-]{11}$")]
+        private static partial Regex YoutubeIdRegex();
     }
 }
