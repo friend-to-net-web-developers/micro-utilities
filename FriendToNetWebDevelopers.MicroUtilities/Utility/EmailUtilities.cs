@@ -313,6 +313,6 @@ public static partial class Utilities
     /// Note: This intentionally excludes the full RFC 5321 quoted-string form ("<c>"foo bar"@example.com</c>"),
     /// which is technically valid but essentially never seen in practice and commonly rejected by mail servers.
     /// </summary>
-    [GeneratedRegex(@"^[a-z0-9_]([.\-+a-z0-9_]*[a-z0-9_])?$")]
+    [GeneratedRegex(@"^[a-z0-9_]+([.\-+][a-z0-9_]+)*$")]
     private static partial Regex EmailUsernameRegex();
 }
