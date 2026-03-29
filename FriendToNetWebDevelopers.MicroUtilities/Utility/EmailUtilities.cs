@@ -11,9 +11,13 @@ namespace FriendToNetWebDevelopers.MicroUtilities;
 public static partial class Utilities
 {
     /// <summary>
-    /// Handles various email validation
-    /// Limitations: Currently does not support email addresses with foreign characters
+    /// Handles various email validation and normalization operations.
     /// </summary>
+    /// <remarks>
+    /// Internationalized domain names (IDN) are fully supported via Punycode normalization.
+    /// Local parts are treated as case-sensitive per RFC 5321 — normalize before comparing
+    /// if case-insensitive matching is required.
+    /// </remarks>
     public static class Email
     {
         /// <summary>
@@ -21,73 +25,69 @@ public static partial class Utilities
         /// The validation includes checking for proper format, valid hostname, and top-level domain.
         /// </summary>
         /// <remarks>
-        /// Deliberately does not use built-in .NET email validation due to its limitations in handling certain edge cases.
-        /// This method focuses on a pure email address. Treats the email as a part of a Uri.
+        /// Deliberately does not use built-in .NET email validation due to its limitations in
+        /// handling certain edge cases. Treats the email as a part of a URI.
+        /// <para>
+        /// <b>Case sensitivity:</b> Local parts are case-sensitive per RFC 5321.
+        /// <c>User@example.com</c> and <c>user@example.com</c> are technically distinct addresses.
+        /// This method will return <c>false</c> for an email whose local part differs in case from
+        /// what the URI parser reconstructs. Normalize (e.g. <see cref="TryGetNormalizedValidPunyEmail(string?,out PunyUniResult?,out AddressPartAnnotation?)"/>)
+        /// before calling this if case-insensitive matching is desired.
+        /// </para>
         /// </remarks>
-        /// <param name="email">The email address to validate. Can be null or empty, but will return false in such cases.</param>
-        /// <returns>
-        /// True if the provided email address passes validation checks; otherwise, false.
-        /// </returns>
+        /// <param name="email">The email address to validate. Can be null or empty, in which case this returns false.</param>
+        /// <returns>True if the provided email address passes all validation checks; otherwise, false.</returns>
         /// <see cref="Uri.TryCreate(string, UriKind, out Uri)"/>
         public static bool IsValidEmail(string? email)
         {
             if (string.IsNullOrWhiteSpace(email)) return false;
             if (email.IndexOf('@') < 1) return false;
             if (email.Contains(':')) return false;
+
             var uriOkay = Uri.TryCreate($"https://{email}", UriKind.Absolute, out var uri);
             if (!uriOkay || uri == null) return false;
+
             var username = uri.UserInfo.Split(':')[0];
             if (!EmailUsernameRegex().IsMatch(username)) return false;
+
             if (uri.HostNameType is not (UriHostNameType.Dns or UriHostNameType.IPv4 or UriHostNameType.IPv6))
                 return false;
+
             if (uri.HostNameType is UriHostNameType.Dns && uri.Host.IndexOf('.') < 1) return false;
-            var puny = uri.DnsSafeHost;
+
             if (!Url.HasValidTopLevelDomain(uri)) return false;
+
+            // RFC 5321: local parts are case-sensitive. Uri preserves UserInfo casing but
+            // lowercases the host, so this equality check is intentionally exact on the local part.
             var spawned = $"{uri.UserInfo.Split(':')[0]}@{uri.DnsSafeHost}";
             return spawned == email;
         }
 
         /// <summary>
-        /// Attempts to validate and normalize the provided email address using specific normalization strategies.
-        /// Normalization includes transformations like converting to lowercase, trimming whitespace, and applying
-        /// other specified rules to produce a "pure" email representation.
+        /// Attempts to validate and normalize the provided email address using all normalization strategies.
         /// </summary>
         /// <remarks>
-        /// This method can ignore internal validation if explicitly instructed. The result is deemed valid
-        /// only if the normalization and validation operations succeed based on the specified strategy.
+        /// <b>Deprecated.</b> Use <see cref="TryGetNormalizedValidPunyEmail(string?,out PunyUniResult?,out AddressPartAnnotation?)"/> instead,
+        /// which returns both Punycode and Unicode forms and exposes suspicious-input flags.
         /// </remarks>
-        /// <param name="email">The email address to process. Can be null or empty, in which case normalization will fail.</param>
-        /// <param name="normalizedPure">Outputs the normalized, "pure" email address if processing succeeds; otherwise, null.</param>
-        /// <returns>
-        /// True if the email is valid and normalization is successful; otherwise, false.
-        /// </returns>
+        /// <param name="email">The email address to process. Can be null or empty, in which case this returns false.</param>
+        /// <param name="normalizedPure">The normalized email address if successful; otherwise, null.</param>
+        /// <returns>True if the email is valid and normalization succeeded; otherwise, false.</returns>
         [Obsolete("This method is deprecated. Please use TryGetNormalizedValidPunyEmail instead.")]
         public static bool TryGetNormalizedValidEmail(string? email, [NotNullWhen(true)] out string? normalizedPure)
             => TryGetNormalizedValidEmail(email, out normalizedPure, TryGetNormalizedValidEmailStrategyEnum.All);
 
         /// <summary>
-        /// Attempts to validate and normalize the given email address based on specified strategies.
-        /// If successful, returns a normalized version of the email address, otherwise returns false.
+        /// Attempts to validate and normalize the provided email address using all normalization strategies,
+        /// with optional skipping of internal validation.
         /// </summary>
         /// <remarks>
-        /// This method applies various strategies to normalize email addresses, such as removing tags,
-        /// trimming spaces, converting to lowercase, and dropping unnecessary dots (all strategies).
-        /// The email is considered valid only after passing internal validation (if not skipped).
+        /// <b>Deprecated.</b> Use <see cref="TryGetNormalizedValidPunyEmail(string?,out PunyUniResult?,out AddressPartAnnotation?)"/> instead.
         /// </remarks>
-        /// <param name="email">
-        /// The email address to process. Can be null or empty. The method will return false in such cases.
-        /// </param>
-        /// <param name="normalizedPure">
-        /// The output parameter that contains the normalized email address if the method returns true.
-        /// Will be null if the method returns false.
-        /// </param>
-        /// <param name="skipInternalValidation">
-        /// If set to true, skips internal validation logic and applies only the normalization strategies.
-        /// If false, email validation is performed before normalization.
-        /// </param>
-        /// <returns>
-        /// True if the email passes validation and is successfully normalized; otherwise, false.
-        /// </returns>
+        /// <param name="email">The email address to process. Can be null or empty, in which case this returns false.</param>
+        /// <param name="normalizedPure">The normalized email address if successful; otherwise, null.</param>
+        /// <param name="skipInternalValidation">If true, skips internal validation and applies only normalization strategies.</param>
+        /// <returns>True if the email is valid and normalization succeeded; otherwise, false.</returns>
         [Obsolete("This method is deprecated. Please use TryGetNormalizedValidPunyEmail instead.")]
         public static bool TryGetNormalizedValidEmail(string? email, [NotNullWhen(true)] out string? normalizedPure,
             bool skipInternalValidation)
@@ -96,26 +96,15 @@ public static partial class Utilities
 
         /// <summary>
         /// Attempts to normalize and validate an email address based on a customizable set of strategies.
-        /// Normalization processes can include converting to lowercase, removing tags, trimming whitespace,
-        /// and dropping dots from the username portion of the email address.
         /// </summary>
         /// <remarks>
-        /// If the email address is valid and normalization is successful, the method outputs the normalized
-        /// version of the email and returns true. Otherwise, it returns false.
-        /// The validation process may omit certain checks if specified by the parameters.
+        /// <b>Deprecated.</b> Use <see cref="TryGetNormalizedValidPunyEmail(string?,TryGetNormalizedValidEmailStrategyEnum,out PunyUniResult?,out AddressPartAnnotation?,bool)"/> instead.
         /// </remarks>
-        /// <param name="email">The input email address to validate and normalize.
-        /// Can be null, in which case the method returns false.</param>
-        /// <param name="normalizedPure">Outputs the normalized version of the email if the input is valid;
-        /// otherwise, null.</param>
-        /// <param name="strategy">Defines the specific actions to perform during the normalization
-        /// process, such as converting to lowercase, removing tags, or trimming whitespace.</param>
-        /// <param name="skipInternalValidation">Indicates whether to bypass additional validation steps
-        /// within the method. When true, some internal safety checks will be skipped.</param>
-        /// <returns>
-        /// True if the email is valid according to the provided parameters and normalization
-        /// succeeds; otherwise, false.
-        /// </returns>
+        /// <param name="email">The email address to validate and normalize. Can be null, in which case this returns false.</param>
+        /// <param name="normalizedPure">The normalized email address if successful; otherwise, null.</param>
+        /// <param name="strategy">The normalization strategies to apply.</param>
+        /// <param name="skipInternalValidation">If true, bypasses internal validation checks.</param>
+        /// <returns>True if the email is valid and normalization succeeded; otherwise, false.</returns>
         [Obsolete("This method is deprecated. Please use TryGetNormalizedValidPunyEmail instead.")]
         public static bool TryGetNormalizedValidEmail(
             string? email,
@@ -125,8 +114,10 @@ public static partial class Utilities
         {
             var okay = TryGetNormalizedValidPunyEmail(email, strategy, out var punyResult, out _,
                 skipInternalValidation);
+
             if (!okay || punyResult == null ||
-                punyResult.InputForm is DomainInputForm.Invalid or DomainInputForm.Mixed || punyResult.Unicode == null)
+                punyResult.InputForm is DomainInputForm.Invalid or DomainInputForm.Mixed ||
+                punyResult.Unicode == null)
             {
                 normalizedPure = null;
                 return false;
@@ -137,40 +128,72 @@ public static partial class Utilities
         }
 
         /// <summary>
-        /// Attempts to validate and normalize a provided email address into a punycode-compliant format.
-        /// The method ensures that the email address is syntactically valid, applies normalization strategies,
-        /// and provides additional annotations regarding the processed input.
+        /// Attempts to validate and normalize a provided email address into both Punycode and Unicode forms,
+        /// using all normalization strategies.
         /// </summary>
-        /// <param name="email">The email address to be normalized and validated. Can be null or empty.</param>
-        /// <param name="result">The output containing the original input, its Unicode representation,
-        /// the punycode representation, and a flag to indicate any suspicious properties.</param>
-        /// <param name="inputAnnotation">Additional annotation details for the email,
-        /// including breakdown of parts, tokenization, and character analysis information.</param>
-        /// <returns>
-        /// True if the email is valid and successfully normalized into punycode format; otherwise, false.
-        /// </returns>
+        /// <remarks>
+        /// This is the preferred overload for most callers. It applies all strategies: <c>ToLower</c>,
+        /// <c>Trim</c>, <c>DropTag</c>, and <c>DropDot</c>.
+        /// <para>
+        /// <b>Warning:</b> <c>DropTag</c> (plus-addressing) and <c>DropDot</c> are provider-specific
+        /// behaviours. <c>DropTag</c> is appropriate for Gmail and similar providers but may mangle
+        /// addresses on systems where <c>+</c> is not a sub-address delimiter (e.g. Fastmail, ProtonMail).
+        /// <c>DropDot</c> is Gmail-specific. If normalizing addresses for providers other than Gmail,
+        /// use the strategy overload and omit these flags.
+        /// </para>
+        /// </remarks>
+        /// <param name="email">The email address to normalize and validate. Can be null or empty.</param>
+        /// <param name="result">
+        /// The normalized result containing both Unicode and Punycode forms, the detected domain input form,
+        /// and a suspicious-input flag. Null if this method returns false.
+        /// </param>
+        /// <param name="inputAnnotation">
+        /// Character-level annotation of the input, including homoglyph detection and Unicode analysis.
+        /// Null if this method returns false.
+        /// </param>
+        /// <returns>True if the email is valid and normalization succeeded; otherwise, false.</returns>
         public static bool TryGetNormalizedValidPunyEmail(string? email,
             [NotNullWhen(true)] out PunyUniResult? result,
             [NotNullWhen(true)] out AddressPartAnnotation? inputAnnotation)
-            => TryGetNormalizedValidPunyEmail(email, TryGetNormalizedValidEmailStrategyEnum.All, out result, out inputAnnotation);
+            => TryGetNormalizedValidPunyEmail(email, TryGetNormalizedValidEmailStrategyEnum.All, out result,
+                out inputAnnotation);
 
         /// <summary>
-        /// Attempts to validate, normalize, and convert an email address to a Punycode representation based on a specified set of strategies.
-        /// This method performs checks and modifications such as trimming, case normalization, removal of tags, and dot normalization,
-        /// depending on the selected strategy flags.
+        /// Attempts to validate, normalize, and convert an email address to both Punycode and Unicode forms,
+        /// based on a specified set of strategies.
         /// </summary>
         /// <remarks>
-        /// The method aims to create a valid Punycode representation of an email address that complies with system-specific requirements.
-        /// Internal email validation checks can be optionally skipped. Multiple normalization strategies can be combined using bitwise operations.
+        /// <para>
+        /// <b>DropTag</b> removes plus sub-addressing (<c>foo+tag@example.com</c> → <c>foo@example.com</c>).
+        /// This is appropriate for Gmail but not for all providers. Do not include in <paramref name="strategy"/>
+        /// when normalizing addresses for Fastmail, ProtonMail, or other providers where <c>+</c> is not semantic.
+        /// </para>
+        /// <para>
+        /// <b>DropDot</b> removes dots from the local part (<c>first.last@gmail.com</c> → <c>firstlast@gmail.com</c>).
+        /// This is a Gmail-specific behaviour and should not be applied generally.
+        /// </para>
+        /// <para>
+        /// <b>Colon stripping</b> is always applied regardless of strategy — only hostile actors submit
+        /// colons in the local part.
+        /// </para>
         /// </remarks>
-        /// <param name="email">The email address to validate and normalize. Can be null or empty, which will result in a false return value.</param>
-        /// <param name="strategy">The strategies to apply during the normalization process. Supported flags include trimming, casing, tag removal, and dot normalization.</param>
-        /// <param name="result">The resulting <c>PunyUniResult</c> object containing the normalized Punycode representation of the email address. Will be null if the method returns false.</param>
-        /// <param name="inputAnnotation">An annotation object describing the parts of the input email address. Will be null if the method returns false.</param>
-        /// <param name="skipInternalValidation">A boolean value indicating whether to skip internal validation checks of the email address. Defaults to false.</param>
-        /// <returns>
-        /// True if the email address was successfully validated, normalized, and converted to Punycode; otherwise, false.
-        /// </returns>
+        /// <param name="email">The email address to validate and normalize. Can be null or empty, which results in false.</param>
+        /// <param name="strategy">
+        /// The normalization strategies to apply. Flags may be combined. See <see cref="TryGetNormalizedValidEmailStrategyEnum"/>
+        /// for available options and pre-built combinations.
+        /// </param>
+        /// <param name="result">
+        /// The normalized result if successful; otherwise, null. Contains Unicode and Punycode canonical forms,
+        /// the detected domain input form, and a suspicious-input flag.
+        /// </param>
+        /// <param name="inputAnnotation">
+        /// Character-level annotation of the raw input. Null if this method returns false.
+        /// </param>
+        /// <param name="skipInternalValidation">
+        /// If true, skips <see cref="IsValidEmail"/> checks. Useful for internal or custom domains
+        /// (e.g. <c>admin@internal</c>) that would not pass TLD validation.
+        /// </param>
+        /// <returns>True if the email was successfully validated, normalized, and converted; otherwise, false.</returns>
         public static bool TryGetNormalizedValidPunyEmail(
             string? email,
             TryGetNormalizedValidEmailStrategyEnum strategy,
@@ -188,18 +211,19 @@ public static partial class Utilities
             inputAnnotation = email.Annotate(InputMode.Email);
 
             var okay = MailAddress.TryCreate(email, out var parsedResult);
-            if (!okay || parsedResult == null || !skipInternalValidation && !IsValidEmail(parsedResult.Address))
+            if (!okay || parsedResult == null || (!skipInternalValidation && !IsValidEmail(parsedResult.Address)))
             {
                 result = null;
                 return false;
             }
 
             string normalized;
-            // Get rid of +(?) in an email address username (foo+1@bar.com)
-            if (((int)strategy & (int)TryGetNormalizedValidEmailStrategyEnum.DropTag) != 0)
+
+            // DropTag: remove plus sub-addressing (foo+tag@example.com → foo@example.com).
+            // Provider-specific — appropriate for Gmail; do not use for Fastmail, ProtonMail, etc.
+            if (strategy.HasFlag(TryGetNormalizedValidEmailStrategyEnum.DropTag))
             {
-                var user = parsedResult.User;
-                user = user.Split('+')[0];
+                var user = parsedResult.User.Split('+')[0];
                 normalized = $"{user}@{parsedResult.Host}";
             }
             else
@@ -207,20 +231,22 @@ public static partial class Utilities
                 normalized = parsedResult.Address;
             }
 
-            // This shouldn't be NECESSARY but because other safety measures can be skipped, I'm leaving it in
-            if (((int)strategy & (int)TryGetNormalizedValidEmailStrategyEnum.Trim) != 0)
+            // Trim: defensive — shouldn't be necessary after MailAddress.TryCreate, but
+            // included for correctness when skipInternalValidation is true.
+            if (strategy.HasFlag(TryGetNormalizedValidEmailStrategyEnum.Trim))
             {
                 normalized = normalized.Trim();
             }
 
-            // While I think this should ALWAYS be done, I'm leaving it in as an option for case-sensitive systems
-            if (((int)strategy & (int)TryGetNormalizedValidEmailStrategyEnum.ToLower) != 0)
+            // ToLower: recommended for all systems unless the downstream is explicitly case-sensitive.
+            if (strategy.HasFlag(TryGetNormalizedValidEmailStrategyEnum.ToLower))
             {
                 normalized = normalized.ToLowerInvariant();
             }
 
-            // Some systems, like Gmail, ignore dots in email addresses. This normalizes around that.
-            if (((int)strategy & (int)TryGetNormalizedValidEmailStrategyEnum.DropDot) != 0)
+            // DropDot: removes dots from the local part (first.last@gmail.com → firstlast@gmail.com).
+            // Gmail-specific behaviour — do not apply to other providers.
+            if (strategy.HasFlag(TryGetNormalizedValidEmailStrategyEnum.DropDot))
             {
                 var parts = normalized.Split('@');
                 if (parts.Length == 2)
@@ -229,8 +255,8 @@ public static partial class Utilities
                 }
             }
 
-            //Stripping ":" → I wasn't asking, for the most obvious reasons. Only hostile actors would try.
-            //   AND this only needs to be checked if internal validation is skipped
+            // Colon stripping — always applied, not negotiable.
+            // Colons in the local part have no legitimate use; only hostile actors submit them.
             {
                 var parts = normalized.Split('@');
                 if (parts.Length == 2)
@@ -239,7 +265,7 @@ public static partial class Utilities
                 }
             }
 
-            //Normalize to punycode and unicode. I wasn't asking.
+            // Punycode/Unicode normalization — always applied, not negotiable.
             {
                 var normalizedBaseParts = normalized.Split('@');
                 if (normalizedBaseParts.Length != 2)
@@ -248,11 +274,11 @@ public static partial class Utilities
                     return false;
                 }
 
-                //First, assume the user is hostile. Check if already punyfied.
+                // Assume hostile input. Check whether domain has already been Punycode-encoded.
                 var domainInput = normalizedBaseParts[1];
                 var punyResult = PunyUniResult.From(domainInput);
 
-                // Hostile or malformed — bail immediately
+                // Invalid or mixed-encoding domain — bail immediately.
                 if (punyResult.InputForm is DomainInputForm.Invalid or DomainInputForm.Mixed
                     || punyResult.Punycode == null)
                 {
@@ -260,17 +286,15 @@ public static partial class Utilities
                     return false;
                 }
 
-                // Anyone submitting raw Punycode is suspicious, but we can still
-                // normalize it — the annotation will surface the red flag to the caller
-                // punyResult.IsSuspicious is already set true for Punycode/Mixed/Invalid
-
+                // Raw Punycode submitted by a human is suspicious, but still normalizable.
+                // IsSuspicious is already set on punyResult for Punycode/Mixed/Invalid inputs.
+                // The annotation surfaces this to the caller.
                 var localPart = normalizedBaseParts[0];
-                var canonicalKey = $"{localPart}@{punyResult.Punycode}";
 
                 result = new PunyUniResult(
                     Input: normalized,
                     Unicode: $"{localPart}@{punyResult.Unicode}",
-                    Punycode: canonicalKey,
+                    Punycode: $"{localPart}@{punyResult.Punycode}",
                     InputForm: punyResult.InputForm,
                     IsSuspicious: punyResult.IsSuspicious || inputAnnotation.ContainsSuspiciousChars
                 );
@@ -280,6 +304,15 @@ public static partial class Utilities
         }
     }
 
-    [GeneratedRegex(@"^[a-z0-9_](\.{0,1}[\-\+a-z0-9_])*[a-z0-9_]$")]
+    /// <summary>
+    /// Matches a valid email local part per RFC 5321.
+    /// Rules:
+    ///   - Must start and end with an alphanumeric character or underscore.
+    ///   - Middle characters may include: letters, digits, underscores, hyphens, plus signs, and dots.
+    ///   - Single-character local parts (e.g. "a@example.com") are valid.
+    /// Note: This intentionally excludes the full RFC 5321 quoted-string form ("<c>"foo bar"@example.com</c>"),
+    /// which is technically valid but essentially never seen in practice and commonly rejected by mail servers.
+    /// </summary>
+    [GeneratedRegex(@"^[a-z0-9_]([.\-+a-z0-9_]*[a-z0-9_])?$")]
     private static partial Regex EmailUsernameRegex();
 }
