@@ -29,11 +29,11 @@ public class YoutubeTests
         var defaultOkayResponse = client.GetAsync(new Uri(defaultOkay)).Result;
         Assert.That(defaultOkayResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK)); 
         
-        var hqDefaultOkay = Utilities.Youtube.GetYoutubeThumbnail(ValidYoutubeId, YoutubeThumbnailEnum.HqDefault);
+        var hqDefaultOkay = Utilities.Youtube.GetYoutubeThumbnail(ValidYoutubeId, YoutubeThumbnail.HqDefault);
         var hqDefaultOkayResponse = client.GetAsync(new Uri(hqDefaultOkay)).Result;
         Assert.That(hqDefaultOkayResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         
-        var maxResDefaultOkay = Utilities.Youtube.GetYoutubeThumbnail(ValidYoutubeId, YoutubeThumbnailEnum.MaxResDefault);
+        var maxResDefaultOkay = Utilities.Youtube.GetYoutubeThumbnail(ValidYoutubeId, YoutubeThumbnail.MaxResDefault);
         var maxResDefaultOkayResponse = client.GetAsync(new Uri(maxResDefaultOkay)).Result;
         Assert.That(maxResDefaultOkayResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 

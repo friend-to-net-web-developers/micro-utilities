@@ -1,0 +1,28 @@
+name: Feature Request
+description: Suggest an addition or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests are welcome. Please be as specific as possible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case. What are you trying to do that the library doesn't currently support?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behaviour
+      description: If you have a specific API in mind, show it here. Pseudocode is fine.
+      render: csharp
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered

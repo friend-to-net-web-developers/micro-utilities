@@ -7,421 +7,433 @@
 - **Unit Tests:** [Latest Test Results](https://github.com/friend-to-net-web-developers/micro-utilities/actions/workflows/dotnet-test-on-pr-net.yml)
 
 ## Summary
-A set of tiny utilities to help on web projects
+
+A set of small, focused utilities for .NET web projects covering email validation and normalization, URI handling, HTML ID generation, YouTube URL helpers, variable name conversion, and Unicode text analysis.
 
 ## Installation
-`Install-Package FriendToNetWebDevelopers.MicroUtilities`
 
-## Usage & Available Utilities
+```
+Install-Package FriendToNetWebDevelopers.MicroUtilities
+```
 
-For each of these, you'll need to include this.
+## Migration from 1.x
+
+Version 2.0.0 contains the following breaking changes:
+
+- **`YoutubeThumbnailEnum` renamed to `YoutubeThumbnail`** — the `Enum` suffix was misleading; this type is a smart enum (type-safe class), not a `System.Enum`.
+- **`CharacterToken.IsEmailStructural` renamed to `IsStructural`** — the old name was inaccurate; the field applies to both email and URI structural characters.
+- **`GetVariableName` and `GetClassName` now throw `ArgumentNullException` for null arguments** — previously returned `string.Empty` silently.
+- **`BuildAbsoluteUrl` logic corrected** — the port-inclusion/exclusion branches were inverted in 1.x. If you were working around this bug, remove the workaround.
+- **.NET 8 and .NET 9 support dropped** — .NET 10 is required.
+
+## Usage
+
+All utilities are accessed via the static `Utilities` class:
+
 ```csharp
 using FriendToNetWebDevelopers.MicroUtilities;
 ```
 
-### Email validation
-
-This utility attempts to validate email emails by checking for formatting and also checking a
-    list of valid top-level domains as provided by [icann.org](https://www.icann.org/resources/pages/tlds-2012-02-25-en).
-
-Testing was based on this [gist](https://gist.github.com/cjaoude/fd9910626629b53c4d25).
-However, it makes no attempt to accept the Strange Valid email addresses category.
+Extension methods require an additional using:
 
 ```csharp
-var okay = Utilities.Email.IsValidEmail("none@none.com");
-//return true
-
-okay = Utilities.Email.IsValidEmail("foo@bar");
-//returns false
+using FriendToNetWebDevelopers.MicroUtilities.Extensions;
 ```
 
-#### Email Normalization (Punycode & Unicode Support)
+---
 
-This utility allows for the normalization of email addresses based on various strategies like removing tags, trimming whitespace, and converting to lowercase. It also provides full support for Internationalized Domain Names (IDN) by converting them to Punycode.
+### Email Validation & Normalization
+
+Validates email addresses by checking format, hostname structure, and top-level domain against the [IANA TLD list](https://data.iana.org/TLD/tlds-alpha-by-domain.txt). Internationalized domain names (IDN) are fully supported via Punycode normalization.
+
+> Validation testing was based on [this gist](https://gist.github.com/cjaoude/fd9910626629b53c4d25). The "Strange Valid" category is intentionally not supported.
+
+#### Validation
 
 ```csharp
-// Default normalization (All strategies: ToLower, Trim, DropTag, DropDot)
-// Note: This method replaces the deprecated TryGetNormalizedValidEmail
-var okay = Utilities.Email.TryGetNormalizedValidPunyEmail("  First.Last+tag@München.de  ", out var punyResult, out var annotation);
+Utilities.Email.IsValidEmail("user@example.com");
+// returns true
+
+Utilities.Email.IsValidEmail("foo@bar");
+// returns false
+```
+
+> **Note on case sensitivity:** Local parts are case-sensitive per RFC 5321. `User@example.com` and `user@example.com` are technically distinct addresses. `IsValidEmail` will return `false` for an address whose local part casing differs from what the URI parser reconstructs. Normalize before validating if case-insensitive matching is required.
+
+#### Normalization (Punycode & Unicode)
+
+`TryGetNormalizedValidPunyEmail` is the primary normalization entry point. It returns both the Unicode and Punycode canonical forms of the address, along with a character-level annotation and a suspicious-input flag.
+
+```csharp
+// Default normalization — applies all strategies: ToLower, Trim, DropTag, DropDot
+var okay = Utilities.Email.TryGetNormalizedValidPunyEmail(
+    "  First.Last+tag@München.de  ",
+    out var punyResult,
+    out var annotation);
 // okay = true
-// punyResult.Unicode = "firstlast@münchen.de"
+// punyResult.Unicode  = "firstlast@münchen.de"
 // punyResult.Punycode = "firstlast@xn--mnchen-3ya.de"
 // punyResult.IsSuspicious = false
 
-// Individual strategy: Drop sub-addressing tag only
-okay = Utilities.Email.TryGetNormalizedValidPunyEmail("user+tag@example.com", TryGetNormalizedValidEmailStrategyEnum.DropTag, out punyResult, out _);
+// Drop sub-addressing tag only
+okay = Utilities.Email.TryGetNormalizedValidPunyEmail(
+    "user+tag@example.com",
+    TryGetNormalizedValidEmailStrategyEnum.DropTag,
+    out punyResult,
+    out _);
 // okay = true
 // punyResult.Unicode = "user@example.com"
 
-// Multiple strategies: Lowercase and Trim
-okay = Utilities.Email.TryGetNormalizedValidPunyEmail("  User@Example.com  ", TryGetNormalizedValidEmailStrategyEnum.LowerAndTrim, out punyResult, out _);
+// Lowercase and trim only
+okay = Utilities.Email.TryGetNormalizedValidPunyEmail(
+    "  User@Example.com  ",
+    TryGetNormalizedValidEmailStrategyEnum.LowerAndTrim,
+    out punyResult,
+    out _);
 // okay = true
 // punyResult.Unicode = "user@example.com"
 
-// Skipping internal validation (useful for custom domains or internal systems)
-okay = Utilities.Email.TryGetNormalizedValidPunyEmail("admin@internal", TryGetNormalizedValidEmailStrategyEnum.All, out punyResult, out _, skipInternalValidation: true);
+// Skip TLD validation — useful for internal/custom domains
+okay = Utilities.Email.TryGetNormalizedValidPunyEmail(
+    "admin@internal",
+    TryGetNormalizedValidEmailStrategyEnum.All,
+    out punyResult,
+    out _,
+    skipInternalValidation: true);
 // okay = true
 // punyResult.Unicode = "admin@internal"
 ```
 
+> **Provider-specific strategies:** `DropTag` (plus sub-addressing) and `DropDot` are Gmail-specific behaviours. Do not apply them when normalizing addresses for providers where `+` is not a sub-address delimiter (e.g. Fastmail, ProtonMail) or where dots are significant. Use the strategy overload and omit those flags for general-purpose normalization.
+
+Available strategy flags and pre-built combinations are defined in `TryGetNormalizedValidEmailStrategyEnum`.
+
+---
+
 ### Address Annotation & Security Analysis
 
-The `AddressAnnotator` provides deep inspection of email addresses and URIs to identify suspicious characters (like homoglyphs), Unicode usage, and invalid characters. This is particularly useful for security-sensitive applications to detect potential phishing or spoofing attempts.
+`AddressAnnotator` provides character-level inspection of email addresses and URI components, identifying suspicious characters (homoglyphs), Unicode usage, and invalid characters. Useful for detecting phishing and spoofing attempts.
 
 ```csharp
-var email = "tеst@example.com"; // Contains Cyrillic 'е' (homoglyph)
+var email = "tеst@example.com"; // Contains Cyrillic 'е' — a homoglyph of ASCII 'e'
 var annotation = Utilities.AddressAnnotator.Annotate(email);
 
-if (annotation.ContainsSuspiciousChars) 
+if (annotation.ContainsSuspiciousChars)
 {
-    // Handle potential phishing/spoofing attempt
     var suspiciousToken = annotation.LocalTokens.First(t => t.IsSuspicious);
-    // suspiciousToken.Char = "е"
+    // suspiciousToken.Char       = "е"
     // suspiciousToken.HomoglyphOf = "e"
 }
 
-// Inspect parts
-// annotation.LocalPart = "tеst"
-// annotation.Domain = "example.com"
-// annotation.ContainsUnicode = true
-// annotation.Mode = InputMode.Email
+// annotation.LocalPart           = "tеst"
+// annotation.Domain              = "example.com"
+// annotation.ContainsUnicode     = true
+// annotation.Mode                = InputMode.Email
 ```
 
-Extension methods are also available for `string`, `Uri`, and `MailAddress`:
+> **Homoglyph coverage:** The built-in table covers high-priority confusables from [Unicode TR39](https://www.unicode.org/reports/tr39/#confusables) — Cyrillic, Greek, and Latin Extended lookalikes. It is intentionally partial; extend it in your own code for broader coverage.
+
+Extension methods are available on `string`, `Uri`, and `MailAddress`:
 
 ```csharp
-using FriendToNetWebDevelopers.MicroUtilities.Extensions;
-
-var annotation = "user@example.com".Annotate();
+var annotation    = "user@example.com".Annotate(InputMode.Email);
 var uriAnnotation = new Uri("https://user:pass@example.com").AnnotateUserInfo();
 ```
 
-### Uri Utilities
+---
 
-This utility has to do with validation and generation of urls.
+### URI Utilities
 
 #### Build Absolute URL
 
-Specifically for taking the correct portions of a URI and making them build based on whether or not
-  a developer is running using localhost with a port.
+Builds an absolute URL string from a URI, automatically including or excluding the port based on whether the application is running in debug mode.
 
 ```csharp
 var urlString = Utilities.Url.BuildAbsoluteUrl(uri);
-//                 No port included ↓
-//On the server: https://example.com/some-file.jpg
-//                 Has a port                ↓
-//Debug on local machine: https://localhost:44328/some-file.jpg
+// Debug / localhost:  https://localhost:44328/some-file.jpg  (port included)
+// Production:         https://example.com/some-file.jpg      (port stripped)
 ```
 
-#### Uri Slug Generation & Validation
+#### Slug Generation & Validation
 
-Slugs are used to safely build out a url segment based on, for instance, the title of a document.
-Generating them can be somewhat tricky.  These functions serve to simplify that for the developer.
+Slugs are lowercase, hyphen-separated URL path segments. Valid slugs match `^[a-z0-9]+(?:-[a-z0-9]+)*$`.
 
-Regex for valid slug: `^[a-z0-9]+(?:-[a-z0-9]+)*$`
-
-*Validation*
 ```csharp
-Utilities.Url.IsValidUriSlug("foo-bar");
-//returns true
+// Validation
+Utilities.Url.IsValidUriSlug("foo-bar");  // true
+Utilities.Url.IsValidUriSlug("Foo Bar");  // false
 
-Utilities.Url.IsValidUriSlug("Foo Bar");
-//returns false
+// Generation
+Utilities.Url.TryToConvertToSlug("Foo Bar", out var slug);
+// returns true, slug = "foo-bar"
+
+Utilities.Url.TryToConvertToSlug("-", out var slug);
+// returns false, slug = ""
+
+Utilities.Url.TryToConvertToSlug(null, out var slug);
+// returns false, slug = ""
 ```
 
-*Generation*
+#### Username Validation
+
+Validates a userinfo component per [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986).
+
 ```csharp
-var okay = Utilities.Url.TryToConvertToSlug("Foo Bar", out var slug);
-// okay = true
-// slug = "foo-bar"
-
-var okay = Utilities.Url.TryToConvertToSlug("-", out var slug);
-// okay = false
-// slug = ""
-
-var okay = Utilities.Url.TryToConvertToSlug(null, out var slug);
-// okay = false
-// slug = ""
+Utilities.Url.IsValidUsername("foobar");       // true
+Utilities.Url.IsValidUsername("foo bar");      // false
+Utilities.Url.IsValidUsername(null);           // false
+Utilities.Url.IsValidUsername(null, true);     // true — null explicitly allowed
 ```
 
-#### Uri Username Validation
-
-This is used to validate usernames for use in urls as defined by [RFC 3986](http://www.faqs.org/rfcs/rfc3986.html).
+#### Path Segment Validation
 
 ```csharp
-var okay = Utilities.Url.IsValidUsername("foobar");
-//returns true
-
-var okay = Utilities.Url.IsValidUsername("foo bar");
-//returns false
-
-var okay = Utilities.Url.IsValidUsername(null);
-//returns false
-
-var okay = Utilities.Url.IsValidUsername(null, true);
-//returns true                    because this ↑↑↑↑ allows for null values
+Utilities.Url.IsValidPathSegment("foo");      // true
+Utilities.Url.IsValidPathSegment("foo bar");  // false
+Utilities.Url.IsValidPathSegment(null);       // false
 ```
 
-#### Uri Path Segment Validation
-
-Determines whether a given string is a valid path segment.
+#### Query Parameter Name Validation
 
 ```csharp
-Utilities.Url.IsValidPathSegment("foo");
-//returns true
-
-Utilities.Url.IsValidPathSegment("foo bar");
-//returns false
-
-Utilities.Url.IsValidPathSegment(null);
-//returns false
+Utilities.Url.IsValidQueryParameterName("foo_bar");  // true
+Utilities.Url.IsValidQueryParameterName("foo@bar");  // false
 ```
 
-#### Uri Query Parameter Name Validation
+#### URL Building from a Query Object
 
-Validates whether the provided name is a valid query parameter name.
+Appends a URL-encoded query string to a base URL. Accepts either `IDictionary<string, string>` (unique keys) or `IEnumerable<KeyValuePair<string, string>>` (duplicate keys allowed, useful for array-style parameters like `ids[]=1&ids[]=2`).
 
 ```csharp
-Utilities.Url.IsValidQueryParameterName("foo_bar");
-//returns true
-
-Utilities.Url.IsValidQueryParameterName("foo@bar");
-//returns false
+var finalUrl = Utilities.Url.BuildUrl("https://api.example.com", queryObject);
 ```
 
-#### Url Building Based On A Query Object
+#### Top-Level Domain Validation
 
-Use this to take a known base url (as a string) and dynamically append a query string to it
-  based on either `IDictionary<string, string>` or `IEnumerable<KeyValuePair<string, string>>`.
-
-The dictionary is simple in that it avoid repetition.  However, the list of key value pairs can allow for multiple
- of one key.  For instance, allowing `something[]=1` and `something[]=2` which would come in
- at the server level as a list on the receiving server.
+Validates the TLD of a URI's host against the [IANA TLD list](https://data.iana.org/TLD/tlds-alpha-by-domain.txt).
 
 ```csharp
-//          This is the dictionary or enumerable object for the query ↓
-var finalUrl = Utilities.Url.BuildUrl("https://api.foobar.com", queryObject);
+Utilities.Url.HasValidTopLevelDomain(new Uri("https://foobar.com"));  // true
+Utilities.Url.HasValidTopLevelDomain(new Uri("https://foobar.web"));  // false
 ```
 
-#### Top-level Domain Validation
+#### Punycode & IDN Domain Normalization
 
-Checks if the Top-level domain within the host of the given URI is a valid domain.  Queries against the
-  text [file provided by ICANN / IANA](https://data.iana.org/TLD/tlds-alpha-by-domain.txt) for
-  the final check.
+Normalizes a domain name and produces both its Punycode and Unicode representations.
 
 ```csharp
-Utilities.Url.HasValidTopLevelDomain(new Uri("https://foobar.com"));
-//Returns true
-Utilities.Url.HasValidTopLevelDomain(new Uri("https://foobar.web"));
-//Returns false
-```
-
-#### Punycode & Internationalized Domain Normalization
-
-Attempts to normalize and convert a domain name to its Punycode and Unicode representations.
-
-```csharp
-var success = Utilities.Url.TryNormalizeAndPunycodeDomain("παράδειγμα.ελ", out var puny, out var uni);
-// success = true
+Utilities.Url.TryNormalizeAndPunycodeDomain("παράδειγμα.ελ", out var puny, out var uni);
 // puny = "xn--hxajbheg2az3al.xn--qxam"
-// uni = "παράδειγμα.ελ"
+// uni  = "παράδειγμα.ελ"
 
-success = Utilities.Url.TryNormalizeAndPunycodeDomain(" .EXAMPLE.com. ", out var puny, var out uni);
-// success = true
+Utilities.Url.TryNormalizeAndPunycodeDomain(" .EXAMPLE.com. ", out puny, out uni);
 // puny = "example.com"
-// uni = "example.com"
+// uni  = "example.com"
 ```
+
+---
 
 ### ID Utilities
 
-The ID utilities are meant to quickly get, validate, and return valid id attributes.
+Generates, validates, and coerces valid HTML `id` attribute values. Useful when multiple dynamic elements on a page (accordions, sliders, tabs) need stable, unique IDs that reference each other.
 
-#### Generate IDs
+#### Generation
 
-This is used when creating elements which need to refer to each other by id but there can be many
-on the page at the same time (accordion elements, sliders, etc).
+A prefix is required (defaults to `"id"`). An optional suffix may also be supplied. Supported base types: `Guid`, `int`, `uint`, `long`, `ulong`.
 
-A prefix is required and included by default.  You can change what the prefix is by adding it in. As suffix may also be included.
-
-```C#
-//Generates a valid id attribute value based on a guid with a prefix of "id"
-//example: Returns id02bfd4e04f0b43f9bf407d3162db9289 (generated from new Guid)
+```csharp
+// From a new Guid — returns e.g. "id02bfd4e04f0b43f9bf407d3162db9289"
 Utilities.Id.GetValidHtmlId();
 
-//Formats various types of data into a valid id value
-// types include Guid, int, uint, long, ulong
-// also includes:             |    prefix   suffix
-//                            ↓       ↓        ↓                 
+// From a numeric value with custom prefix and suffix
 Utilities.Id.GetValidHtmlId(4444, "foo_", "_bar");
-// ↑ Returns "foo_4444_bar"
+// returns "foo_4444_bar"
 ```
 
-#### Validate IDs
-This utility can also be used to validate IDs which can be specified in an unsafe way (user input).
-```C#
-string? nullId = null;
-Utilities.Id.IsValidId(nullId);
-// ↑ Returns false
+#### Validation
 
-Utilities.Id.IsValidId("bob dole");
-// ↑ Returns false
-
-Utilities.ID.IsValidId("bob_dole");
-// ↑ Returns true
+```csharp
+Utilities.Id.IsValidId(null);       // false
+Utilities.Id.IsValidId("bob dole"); // false
+Utilities.Id.IsValidId("bob_dole"); // true
 ```
 
-It can also parse an unsafe, nullable proposed id value and ensure a non-nullable string is output.
-```C#
-Utilities.Id.TryGetAsValidId("bob dole", TryGetValidIdDefaultStrategyEnum.EmptyOnInvalid, var out thisWillBeEmpty);
-// ↑ Returns false | thisWilBeEmpty will return string.Empty - this is so that other transformations can be handled
+Single-letter IDs are valid:
 
-Utilities.Id.TryGetAsValidId("foo bar", TryGetValidIdDefaultStrategyEnum.GenerateOnInvalid, var out thisWillBeAGeneratedId);
-// ↑ Returns false | thisWillBeAGeneratedId will return default value from GetValidHtmlId()
-
-Utilities.Id.TryGetAsValidId("foo_bar_baz", TryGetValidIdDefaultStrategyEnum.GenerateOnInvalid, var out thisWillBeFooBarBaz);
-// ↑ Returns true | thisWillBeFooBarBaz will be "foo_bar_baz"
+```csharp
+Utilities.Id.IsValidId("a"); // true
 ```
 
-### Youtube Utilities
+#### Coercion with Fallback
+
+Returns a guaranteed non-null string using a fallback strategy when the input is invalid:
+
+```csharp
+Utilities.Id.TryGetAsValidId(
+    "bob dole",
+    TryGetValidIdDefaultStrategyEnum.EmptyOnInvalid,
+    out var result);
+// returns false, result = ""
+
+Utilities.Id.TryGetAsValidId(
+    "foo bar",
+    TryGetValidIdDefaultStrategyEnum.GenerateOnInvalid,
+    out result);
+// returns false, result = generated id from GetValidHtmlId()
+
+Utilities.Id.TryGetAsValidId(
+    "foo_bar_baz",
+    TryGetValidIdDefaultStrategyEnum.GenerateOnInvalid,
+    out result);
+// returns true, result = "foo_bar_baz"
+```
+
+---
+
+### YouTube Utilities
 
 #### ID Validation
 
-Checks if the given ID is valid based on matching the regex pattern: `[a-zA-Z0-9_-]{11}`
+Checks that a string is a valid YouTube video ID — exactly 11 characters matching `^[a-zA-Z0-9_-]{11}$`.
 
 ```csharp
-Utilities.Youtube.IsValidYoutubeId("SrN4A9rVXj0");
-// ↑ Returns true
-Utilities.Youtube.IsValidYoutubeId("foo-bar");
-// ↑ Returns false
+Utilities.Youtube.IsValidYoutubeId("SrN4A9rVXj0");  // true
+Utilities.Youtube.IsValidYoutubeId("foo-bar");       // false
 ```
 
-#### Thumbnail
-Retrieves the thumbnail for the given youtube id.
+#### Thumbnail URLs
 
 ```csharp
-var thumbnailUrl = Utilities.Youtube.GetYoutubeThumbnail("SrN4A9rVXj0");
-//Returns "https://i.ytimg.com/vi/SrN4A9rVXj0/hqdefault.jpg"
-thumbnailUrl = Utilities.Youtube.GetYoutubeThumbnail("SrN4A9rVXj0", YoutubeThumbnailEnum.MaxResDefault);
-//Returns "https://i.ytimg.com/vi/SrN4A9rVXj0/maxresdefault.jpg"
-thumbnailUrl = Utilities.Youtube.GetYoutubeThumbnail("foo-bar", YoutubeThumbnailEnum.MaxResDefault);
-//Throws BadYoutubeIdException
+// HQ default thumbnail (always available)
+Utilities.Youtube.GetYoutubeThumbnail("SrN4A9rVXj0");
+// returns "https://i.ytimg.com/vi/SrN4A9rVXj0/hqdefault.jpg"
+
+// Max resolution thumbnail (may not be available for all videos)
+Utilities.Youtube.GetYoutubeThumbnail("SrN4A9rVXj0", YoutubeThumbnail.MaxResDefault);
+// returns "https://i.ytimg.com/vi/SrN4A9rVXj0/maxresdefault.jpg"
+
+// Invalid ID throws
+Utilities.Youtube.GetYoutubeThumbnail("foo-bar", YoutubeThumbnail.MaxResDefault);
+// throws BadYoutubeIdException
 ```
 
-#### Embed
-
-Retrieves the url for embedding youtube on a page.
+#### Embed URL
 
 ```csharp
 Utilities.Youtube.GetYoutubeIframeUrl("SrN4A9rVXj0");
-//Returns https://www.youtube.com/embed/SrN4A9rVXj0
+// returns "https://www.youtube.com/embed/SrN4A9rVXj0"
+
 Utilities.Youtube.GetYoutubeIframeUrl("foo-bar");
-//Throws BadYoutubeIdException
+// throws BadYoutubeIdException
 ```
+
+---
 
 ### Variable & Class Naming Utilities
 
-This utility provides methods to identify, convert, and generate variable and class names according to various naming conventions.
+Identifies, converts, and generates variable and class names across naming conventions.
+
+Supported conventions: `CamelCase`, `PascalCase`, `SnakeCase`, `ScreamingSnakeCase`, `KebabCase`, `TrainCase`, `Unicase`, `TrollCase`, `TitleWords`, `SentenceWords`.
+
+> **Acronym casing:** When converting to mixed-case formats, word tails are lowercased. `HTMLParser` → `HtmlParser` (PascalCase) or `htmlParser` (camelCase). This is consistent with common .NET conventions (`HtmlEncoder`, `JsonSerializer`) and is intentional.
+
+> **Unicase / TrollCase inputs:** Word boundaries cannot be recovered from all-lower or all-upper input. Such inputs are treated as a single word when converting to other formats.
 
 #### Format Detection
-Identify the naming convention of a given string. Supported types include `CamelCase`, `PascalCase`, `SnakeCase`, `ScreamingSnakeCase`, `KebabCase`, `TrainCase`, `Unicase`, and `TrollCase`.
 
 ```csharp
-var type = Utilities.Variable.GetVariableFormat("snake_case_example");
+Utilities.Variable.GetVariableFormat("snake_case_example");
 // returns ResultsVariableNameTypeEnum.SnakeCase
 
-var isCamel = "camelCase".IsVariableName(ResultsVariableNameTypeEnum.CamelCase);
+"camelCase".IsVariableName(ResultsVariableNameTypeEnum.CamelCase);
 // returns true
 ```
 
-#### Conversion & "Forced" Formatting
-Convert between naming conventions. If a string doesn't follow a strict convention (e.g., has spaces or special characters), it is identified as `Words` and can still be converted.
+#### Conversion
 
 ```csharp
-// Convert to PascalCase
-var pascal = Utilities.Variable.ConvertToPascalCase("hello-world").result;
+Utilities.Variable.ConvertToPascalCase("hello-world").result;
 // returns "HelloWorld"
 
-// Force conversion from a sentence
-var camel = "This is a test".ConvertTo(RequestedVariableNameTypeEnum.CamelCase).result;
+"This is a test".ConvertTo(RequestedVariableNameTypeEnum.CamelCase).result;
 // returns "thisIsATest"
 
-// Title Case (follows standard English rules for minor words)
-var title = Utilities.Variable.ConvertToTitleWords("a tale of two cities").result;
+Utilities.Variable.ConvertToTitleWords("a tale of two cities").result;
 // returns "A Tale of Two Cities"
 
-// Sentence Case
-var sentence = Utilities.Variable.ConvertToSentenceWords("snake_case_variable").result;
+Utilities.Variable.ConvertToSentenceWords("snake_case_variable").result;
 // returns "Snake case variable"
 ```
 
-#### Naming from Metadata
-Generate variable or class names directly from objects, types, or reflection metadata.
+#### Naming from Reflection Metadata
 
 ```csharp
 var myInstance = new MyCustomClass();
 
-// To variable name (camelCase by default)
-string varName = myInstance.ToVariableName(); 
+myInstance.ToVariableName();
 // returns "myCustomClass"
 
-// To class name (PascalCase)
-string className = typeof(MyCustomClass).ToClassName();
+typeof(MyCustomClass).ToClassName();
 // returns "MyCustomClass"
 
-// Handles generic types (strips arity)
-string listName = typeof(List<int>).ToVariableName();
-// returns "list"
+typeof(List<int>).ToVariableName();
+// returns "list"  (generic arity suffix stripped)
 ```
+
+> `GetVariableName` and `GetClassName` throw `ArgumentNullException` for null arguments.
+
+---
 
 ### Text & Unicode Utilities
 
-Provides advanced character-level analysis and Unicode-safe encoding/decoding. These utilities are particularly useful for handling internationalized text, surrogate pairs, and for security/sanitization tasks.
+Character-level analysis and Unicode-safe encoding/decoding. Handles surrogate pairs (supplementary plane characters such as emoji) correctly as single units.
 
 #### Unicode Escape Encoding & Decoding
 
-Convert between readable Unicode characters and ASCII-compatible escape sequences (`\uXXXX` for BMP, `\UXXXXXXXX` for supplementary planes).
+Converts between Unicode characters and ASCII-compatible escape sequences (`\uXXXX` for BMP characters, `\UXXXXXXXX` for supplementary plane characters).
 
 ```csharp
-// Encode to escaped ASCII
-var escaped = Utilities.Text.EncodeUnicodeEscapes("A©😀");
+Utilities.Text.EncodeUnicodeEscapes("A©😀");
 // returns "A\u00A9\U0001F600"
 
-// Decode back to Unicode
-var decoded = Utilities.Text.DecodeUnicodeEscapes("A\\u00A9\\U0001F600");
+Utilities.Text.DecodeUnicodeEscapes("A\\u00A9\\U0001F600");
 // returns "A©😀"
 
 // Extension methods
-var extEscaped = "A©😀".ToUnicodeEscapedAscii();
-var extDecoded = "A\\u00A9\\U0001F600".ToUnicodeDecoded();
+"A©😀".ToUnicodeEscapedAscii();
+"A\\u00A9\\U0001F600".ToUnicodeDecoded();
 ```
 
 #### Text Character Annotation
 
-The `TextAnnotator` provides character-by-character analysis, correctly handling surrogate pairs (e.g., emojis) as single units. It classifies characters into types like `Letter`, `Digit`, `Whitespace`, `Special`, and `Unicode`.
+Tokenizes a string character-by-character, classifying each as `Letter`, `Digit`, `Whitespace`, `Special`, or `Unicode`, with code point and escape sequence metadata.
 
 ```csharp
-var text = "A 😀 1";
-var tokens = text.Annotate().ToList();
+var tokens = "A 😀 1".Annotate().ToList();
 
-// tokens[0]: "A", Type: Letter, Index: 0
-// tokens[1]: " ", Type: Whitespace, Index: 1
-// tokens[2]: "😀", Type: Unicode, Index: 2, CodePoint: 0x1F600, UnicodeEscape: "\U0001F600"
-// tokens[3]: " ", Type: Whitespace, Index: 4 (Index jumped past surrogate pair)
-// tokens[4]: "1", Type: Digit, Index: 5
+// tokens[0]: "A",  Type: Letter,     Index: 0
+// tokens[1]: " ",  Type: Whitespace,  Index: 1
+// tokens[2]: "😀", Type: Unicode,     Index: 2, CodePoint: 0x1F600, UnicodeEscape: "\U0001F600"
+// tokens[3]: " ",  Type: Whitespace,  Index: 4  (index advanced past surrogate pair)
+// tokens[4]: "1",  Type: Digit,       Index: 5
 ```
+
+---
 
 ## Notes & Compatibility
 
 ### .NET Version Support
-This library supports .NET 8, .NET 9, and .NET 10. 
-Please note that support for **.NET 8** and **.NET 9** is planned to be dropped in the future as they reach their end-of-life. We recommend migrating to **.NET 10** or newer for continued support and security updates.
+
+This library targets **.NET 10** only. Earlier versions are not supported.
 
 ### Thread Safety
-All utility functions in this library are static and designed to be thread-safe. They do not maintain internal state that could lead to race conditions.
+
+All utility methods are static and stateless. The library is thread-safe.
 
 ### Performance
-Many of these utilities use `GeneratedRegex` for optimal performance.
+
+Regex-heavy paths use `[GeneratedRegex]` for compile-time source generation. `TitleCaseMinorWords` lookups use `HashSet<string>` for O(1) access.
 
 ### TLD Updates
-The `HasValidTopLevelDomain` and `IsValidEmail` functions rely on a list of TLDs provided by ICANN/IANA. This list is updated periodically within the library to ensure accuracy.
 
+`HasValidTopLevelDomain` and `IsValidEmail` validate against the IANA TLD list bundled with the library. This list is updated periodically with new releases.

@@ -9,15 +9,30 @@ public static partial class Utilities
 {
     public static class Variable
     {
+        // Minor words that should not be capitalised in title case unless they are
+        // the first or last word. Based on standard English title-case conventions
+        // (Chicago Manual of Style / AP style).
+        private static readonly HashSet<string> TitleCaseMinorWords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "a", "an", "the",
+            "and", "but", "for", "or", "nor",
+            "at", "by", "in", "of", "on", "to", "with", "from"
+        };
+
         /// <summary>
-        /// Determines the format type of a given variable name based on its structure and characters.
+        /// Determines the naming convention of a given variable name based on its structure and characters.
         /// </summary>
-        /// <param name="variableName">The variable name whose format is to be determined.</param>
-        /// <returns>A <see cref="ResultsVariableNameTypeEnum"/> value indicating the format type of the variable name. Returns <c>Unknown</c> if the format cannot be determined or the variable name is invalid.</returns>
+        /// <param name="variableName">The variable name to analyse.</param>
+        /// <returns>
+        /// A <see cref="ResultsVariableNameTypeEnum"/> value indicating the detected convention.
+        /// Returns <see cref="ResultsVariableNameTypeEnum.Words"/> for space-separated or mixed input
+        /// that does not match a variable naming convention.
+        /// Returns <see cref="ResultsVariableNameTypeEnum.Unknown"/> if the input is null, whitespace,
+        /// or contains no letters or digits.
+        /// </returns>
         public static ResultsVariableNameTypeEnum GetVariableFormat(string variableName)
         {
             if (string.IsNullOrWhiteSpace(variableName)) return ResultsVariableNameTypeEnum.Unknown;
-
             if (!variableName.Any(char.IsLetterOrDigit)) return ResultsVariableNameTypeEnum.Unknown;
 
             var isPotentialVariable = char.IsLetter(variableName[0]) &&
@@ -70,11 +85,23 @@ public static partial class Utilities
         }
 
         /// <summary>
-        /// Tries to determine the format type of a given variable name based on its structure and characters.
+        /// Attempts to determine the naming convention of a given variable name.
         /// </summary>
-        /// <param name="variableName">The variable name whose format is to be analyzed.</param>
-        /// <param name="type">When this method returns, contains the determined format type of the variable. If the format is unknown or the input is invalid, this will be set to <c>ResultsVariableNameTypeEnum.Unknown</c>.</param>
-        /// <returns><c>true</c> if the format of the variable name is identified successfully; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// Returns <c>false</c> for <see cref="ResultsVariableNameTypeEnum.Words"/> and
+        /// <see cref="ResultsVariableNameTypeEnum.Unknown"/>, even though <c>Words</c> input
+        /// is accepted by <see cref="ConvertTo"/> and <see cref="TryConvertTo"/>. If you need
+        /// to convert a space-separated or freeform string, call those methods directly rather
+        /// than gating on this one.
+        /// </remarks>
+        /// <param name="variableName">The variable name to analyse.</param>
+        /// <param name="type">
+        /// The detected naming convention, or <see cref="ResultsVariableNameTypeEnum.Unknown"/>
+        /// if detection failed.
+        /// </param>
+        /// <returns>
+        /// <c>true</c> if a specific naming convention was identified; otherwise, <c>false</c>.
+        /// </returns>
         public static bool TryGetVariableFormat(string variableName, out ResultsVariableNameTypeEnum type)
         {
             type = GetVariableFormat(variableName);
@@ -82,21 +109,40 @@ public static partial class Utilities
         }
 
         /// <summary>
-        /// Converts the format of a given variable name to a specified target format.
+        /// Converts a variable name from its detected naming convention to the specified target convention.
         /// </summary>
-        /// <param name="variableName">The variable name to be converted.</param>
-        /// <param name="targetType">The target format type to which the variable name should be converted.</param>
-        /// <returns>A tuple containing the converted variable name, the original format type, and the target format type.</returns>
-        /// <exception cref="ArgumentException">Thrown when the target format type is <c>Unknown</c>.</exception>
-        /// <exception cref="NotAValidVariableNameException">Thrown when the provided variable name is invalid or its format cannot be determined.</exception>
-        public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) ConvertTo(string variableName,
+        /// <remarks>
+        /// Space-separated or mixed input (<see cref="ResultsVariableNameTypeEnum.Words"/>) is accepted
+        /// and will be split on non-alphanumeric boundaries before conversion.
+        /// <para>
+        /// <b>Acronym casing:</b> When converting to CamelCase, PascalCase, or similar mixed-case formats,
+        /// the tail of each word is lowercased. This means <c>HTMLParser</c> converts to
+        /// <c>htmlParser</c> (camelCase) or <c>HtmlParser</c> (PascalCase) rather than preserving
+        /// the original acronym casing. This is consistent with common conventions (e.g. .NET's own
+        /// <c>HtmlEncoder</c>, <c>JsonSerializer</c>) and is intentional.
+        /// </para>
+        /// <para>
+        /// <b>Unicase / TrollCase inputs:</b> Word boundaries cannot be recovered from all-lower or
+        /// all-upper input. Such inputs are treated as a single word.
+        /// </para>
+        /// </remarks>
+        /// <param name="variableName">The variable name to convert.</param>
+        /// <param name="targetType">The target naming convention.</param>
+        /// <returns>
+        /// A tuple of the converted name, the detected source convention, and the target convention.
+        /// </returns>
+        /// <exception cref="NotAValidVariableNameException">
+        /// Thrown when the input is null, empty, or contains no recognisable letters or digits.
+        /// </exception>
+        public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) ConvertTo(
+            string variableName,
             RequestedVariableNameTypeEnum targetType)
         {
             var from = GetVariableFormat(variableName);
             if (from == ResultsVariableNameTypeEnum.Unknown)
                 throw new NotAValidVariableNameException(variableName);
 
-            if (from.ToString() == targetType.ToString()) return (variableName, from, targetType);
+            if (IsSameFormat(from, targetType)) return (variableName, from, targetType);
 
             var words = _getWords(variableName, from);
             var result = _internalConvert(words, targetType);
@@ -104,12 +150,18 @@ public static partial class Utilities
         }
 
         /// <summary>
-        /// Attempts to convert the given variable name to the specified format type.
+        /// Attempts to convert a variable name from its detected naming convention to the specified target convention.
         /// </summary>
-        /// <param name="variableName">The variable name to be converted.</param>
-        /// <param name="targetType">The target format type to which the variable name should be converted.</param>
-        /// <param name="output">An output tuple containing the converted variable name, the original format type, and the target format type.</param>
-        /// <returns>A boolean value indicating whether the conversion was successful. Returns <c>false</c> if the target type is <c>Unknown</c>, if the input variable name format cannot be determined, or if the conversion fails.</returns>
+        /// <param name="variableName">The variable name to convert.</param>
+        /// <param name="targetType">The target naming convention.</param>
+        /// <param name="output">
+        /// A tuple of the converted name, the detected source convention, and the target convention.
+        /// Contains default values if this method returns false.
+        /// </param>
+        /// <returns>
+        /// <c>true</c> if conversion succeeded; <c>false</c> if the input is unrecognisable
+        /// or conversion fails.
+        /// </returns>
         public static bool TryConvertTo(string variableName, RequestedVariableNameTypeEnum targetType,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output)
         {
@@ -124,296 +176,211 @@ public static partial class Utilities
                 output = (result, currentType, targetType);
                 return true;
             }
-            catch
+            catch (ArgumentException)
             {
                 return false;
             }
         }
 
-        /// <summary>
-        /// Converts a variable name to camelCase format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted.</param>
-        /// <returns>A tuple containing the converted variable name, the original variable name type, and the target variable name type.
-        /// The original variable name type is determined during the conversion process.</returns>
+        /// <summary>Converts a variable name to camelCase.</summary>
+        /// <inheritdoc cref="ConvertTo"/>
         public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to)
             ConvertToCamelCase(string variableName) => ConvertTo(variableName, RequestedVariableNameTypeEnum.CamelCase);
 
-        /// <summary>
-        /// Attempts to convert a variable name to camelCase format while providing detailed transformation information.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted to camelCase format.</param>
-        /// <param name="output">
-        /// An output tuple containing the converted variable name as <c>result</c>,
-        /// the original format of the variable name as <c>from</c>,
-        /// and the target format (<see cref="RequestedVariableNameTypeEnum.CamelCase"/>) as <c>to</c>.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if the conversion to camelCase is successful; otherwise, <c>false</c>.
-        /// </returns>
+        /// <summary>Attempts to convert a variable name to camelCase.</summary>
+        /// <inheritdoc cref="TryConvertTo"/>
         public static bool TryConvertToCamelCase(string variableName,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output) =>
             TryConvertTo(variableName, RequestedVariableNameTypeEnum.CamelCase, out output);
 
-        /// <summary>
-        /// Converts the given variable name to PascalCase format.
-        /// </summary>
-        /// <param name="variableName">The variable name to convert to PascalCase.</param>
-        /// <returns>A tuple containing the converted variable name, the original format as a <see cref="ResultsVariableNameTypeEnum"/> value, and the target format as <c>PascalCase</c>.</returns>
+        /// <summary>Converts a variable name to PascalCase.</summary>
+        /// <inheritdoc cref="ConvertTo"/>
         public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to)
-            ConvertToPascalCase(string variableName) => ConvertTo(variableName, RequestedVariableNameTypeEnum.PascalCase);
+            ConvertToPascalCase(string variableName) =>
+            ConvertTo(variableName, RequestedVariableNameTypeEnum.PascalCase);
 
-        /// <summary>
-        /// Attempts to convert a given variable name to PascalCase format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted.</param>
-        /// <param name="output">
-        /// A tuple containing the converted variable name, the original variable name format,
-        /// and the target format. If conversion fails, the tuple values will be set to their defaults.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if the variable name is successfully converted to PascalCase; otherwise, <c>false</c>.
-        /// </returns>
+        /// <summary>Attempts to convert a variable name to PascalCase.</summary>
+        /// <inheritdoc cref="TryConvertTo"/>
         public static bool TryConvertToPascalCase(string variableName,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output) =>
             TryConvertTo(variableName, RequestedVariableNameTypeEnum.PascalCase, out output);
 
-        /// <summary>
-        /// Converts a given variable name to snake_case format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted to snake_case.</param>
-        /// <returns>A tuple containing the converted variable name as <c>result</c>,
-        /// the original variable name format as <c>from</c>, and the target format
-        /// (<see cref="RequestedVariableNameTypeEnum.SnakeCase"/>) as <c>to</c>.</returns>
+        /// <summary>Converts a variable name to snake_case.</summary>
+        /// <inheritdoc cref="ConvertTo"/>
         public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to)
-            ConvertToSnakeCase(string variableName) => ConvertTo(variableName, RequestedVariableNameTypeEnum.SnakeCase);
+            ConvertToSnakeCase(string variableName) =>
+            ConvertTo(variableName, RequestedVariableNameTypeEnum.SnakeCase);
 
-        /// <summary>
-        /// Attempts to convert the given variable name into snake_case format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted.</param>
-        /// <param name="output">An output tuple containing the converted variable name, the original format type, and the target format type.</param>
-        /// <returns><c>true</c> if the conversion is successful; otherwise, <c>false</c>.</returns>
+        /// <summary>Attempts to convert a variable name to snake_case.</summary>
+        /// <inheritdoc cref="TryConvertTo"/>
         public static bool TryConvertToSnakeCase(string variableName,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output) =>
             TryConvertTo(variableName, RequestedVariableNameTypeEnum.SnakeCase, out output);
 
-        /// <summary>
-        /// Converts the given variable name to Screaming Snake Case format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be transformed into Screaming Snake Case.</param>
-        /// <returns>A tuple containing the converted variable name, the original variable's naming format, and the target naming format (Screaming Snake Case).</returns>
+        /// <summary>Converts a variable name to SCREAMING_SNAKE_CASE.</summary>
+        /// <inheritdoc cref="ConvertTo"/>
         public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to)
             ConvertToScreamingSnakeCase(string variableName) =>
             ConvertTo(variableName, RequestedVariableNameTypeEnum.ScreamingSnakeCase);
 
-        /// <summary>
-        /// Attempts to convert a given variable name to the ScreamingSnakeCase format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted to ScreamingSnakeCase.</param>
-        /// <param name="output">
-        /// An output tuple containing the converted variable name in ScreamingSnakeCase format,
-        /// the original format of the variable name, and the target format (ScreamingSnakeCase).
-        /// </param>
-        /// <returns>
-        /// A boolean value indicating whether the conversion was successful. Returns <c>true</c> if the conversion succeeded; otherwise, <c>false</c>.
-        /// </returns>
+        /// <summary>Attempts to convert a variable name to SCREAMING_SNAKE_CASE.</summary>
+        /// <inheritdoc cref="TryConvertTo"/>
         public static bool TryConvertToScreamingSnakeCase(string variableName,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output) =>
             TryConvertTo(variableName, RequestedVariableNameTypeEnum.ScreamingSnakeCase, out output);
 
-        /// <summary>
-        /// Converts the given variable name to kebab-case format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted to kebab-case.</param>
-        /// <returns>A tuple containing the converted variable name in kebab-case, the original variable name format as a <see cref="ResultsVariableNameTypeEnum"/>, and the target format <see cref="RequestedVariableNameTypeEnum.KebabCase"/>.</returns>
+        /// <summary>Converts a variable name to kebab-case.</summary>
+        /// <inheritdoc cref="ConvertTo"/>
         public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to)
-            ConvertToKebabCase(string variableName) => ConvertTo(variableName, RequestedVariableNameTypeEnum.KebabCase);
+            ConvertToKebabCase(string variableName) =>
+            ConvertTo(variableName, RequestedVariableNameTypeEnum.KebabCase);
 
-        /// <summary>
-        /// Attempts to convert the provided variable name to kebab-case format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted.</param>
-        /// <param name="output">
-        /// When this method returns, contains a tuple with the result string in kebab-case format,
-        /// the original format of the variable name, and the target format, if the conversion was successful.
-        /// Otherwise, it contains default values.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if the variable name was successfully converted to kebab-case; otherwise, <c>false</c>.
-        /// </returns>
+        /// <summary>Attempts to convert a variable name to kebab-case.</summary>
+        /// <inheritdoc cref="TryConvertTo"/>
         public static bool TryConvertToKebabCase(string variableName,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output) =>
             TryConvertTo(variableName, RequestedVariableNameTypeEnum.KebabCase, out output);
 
-        /// <summary>
-        /// Converts a variable name to TrainCase format while returning metadata about the conversion process.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted to TrainCase.</param>
-        /// <returns>A tuple containing the converted variable name in TrainCase format as <c>result</c>,
-        /// the original variable name format as <c>from</c>, and <c>to</c> as the target TrainCase format.</returns>
+        /// <summary>Converts a variable name to Train-Case.</summary>
+        /// <inheritdoc cref="ConvertTo"/>
         public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to)
-            ConvertToTrainCase(string variableName) => ConvertTo(variableName, RequestedVariableNameTypeEnum.TrainCase);
+            ConvertToTrainCase(string variableName) =>
+            ConvertTo(variableName, RequestedVariableNameTypeEnum.TrainCase);
 
-        /// <summary>
-        /// Attempts to convert the given variable name to TrainCase format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted.</param>
-        /// <param name="output">
-        /// When this method returns, contains a tuple with the converted variable name,
-        /// the original format of the variable name, and the target format. This parameter
-        /// is passed uninitialized and will only contain valid data if the conversion succeeds.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if the variable name was successfully converted to TrainCase; otherwise, <c>false</c>.
-        /// </returns>
+        /// <summary>Attempts to convert a variable name to Train-Case.</summary>
+        /// <inheritdoc cref="TryConvertTo"/>
         public static bool TryConvertToTrainCase(string variableName,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output) =>
             TryConvertTo(variableName, RequestedVariableNameTypeEnum.TrainCase, out output);
 
-        /// <summary>
-        /// Converts a variable name to the Unicase format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted to the Unicase format.</param>
-        /// <returns>A tuple containing the resulting Unicase-formatted variable name, the original variable name's format as a <see cref="ResultsVariableNameTypeEnum"/> value, and the target format type as <see cref="RequestedVariableNameTypeEnum.Unicase"/>.</returns>
+        /// <summary>Converts a variable name to unicase.</summary>
+        /// <inheritdoc cref="ConvertTo"/>
         public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to)
-            ConvertToUnicase(string variableName) => ConvertTo(variableName, RequestedVariableNameTypeEnum.Unicase);
+            ConvertToUnicase(string variableName) =>
+            ConvertTo(variableName, RequestedVariableNameTypeEnum.Unicase);
 
-        /// <summary>
-        /// Attempts to convert the specified variable name to the Unicase format.
-        /// </summary>
-        /// <param name="variableName">The variable name to convert to the Unicase format.</param>
-        /// <param name="output">
-        /// When this method returns, contains a tuple with the converted variable name,
-        /// the original format of the variable name, and the target format (Unicase), if the conversion was successful.
-        /// This parameter is passed uninitialized.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if the variable name was successfully converted to the Unicase format;
-        /// otherwise, <c>false</c>.
-        /// </returns>
+        /// <summary>Attempts to convert a variable name to unicase.</summary>
+        /// <inheritdoc cref="TryConvertTo"/>
         public static bool TryConvertToUnicase(string variableName,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output) =>
             TryConvertTo(variableName, RequestedVariableNameTypeEnum.Unicase, out output);
 
-        /// <summary>
-        /// Converts the given variable name to the TrollCase format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted.</param>
-        /// <returns>A tuple containing the converted variable name in TrollCase format, the original format of the variable name, and the target format (TrollCase). Returns <c>Unknown</c> as the original format if it cannot be determined.</returns>
+        /// <summary>Converts a variable name to TROLLCASE.</summary>
+        /// <inheritdoc cref="ConvertTo"/>
         public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to)
-            ConvertToTrollCase(string variableName) => ConvertTo(variableName, RequestedVariableNameTypeEnum.TrollCase);
+            ConvertToTrollCase(string variableName) =>
+            ConvertTo(variableName, RequestedVariableNameTypeEnum.TrollCase);
 
-        /// <summary>
-        /// Attempts to convert the given variable name to TrollCase format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted to TrollCase format.</param>
-        /// <param name="output">
-        /// An output tuple that contains the converted variable name, the original format type,
-        /// and the target format type (TrollCase).
-        /// </param>
-        /// <returns>
-        /// A boolean value indicating whether the conversion was successful. Returns <c>false</c>
-        /// if the conversion could not be performed, such as when the variable name is invalid
-        /// or unrecognized.
-        /// </returns>
+        /// <summary>Attempts to convert a variable name to TROLLCASE.</summary>
+        /// <inheritdoc cref="TryConvertTo"/>
         public static bool TryConvertToTrollCase(string variableName,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output) =>
             TryConvertTo(variableName, RequestedVariableNameTypeEnum.TrollCase, out output);
 
-        /// <summary>
-        /// Converts the given variable name to the TitleWords format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted.</param>
-        /// <returns>A tuple containing the converted variable name in TitleWords format, the original format of the variable name, and the target format (TitleWords).</returns>
+        /// <summary>Converts a variable name to Title Words.</summary>
+        /// <inheritdoc cref="ConvertTo"/>
         public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to)
-            ConvertToTitleWords(string variableName) => ConvertTo(variableName, RequestedVariableNameTypeEnum.TitleWords);
+            ConvertToTitleWords(string variableName) =>
+            ConvertTo(variableName, RequestedVariableNameTypeEnum.TitleWords);
 
-        /// <summary>
-        /// Attempts to convert the given variable name to TitleWords format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted to TitleWords format.</param>
-        /// <param name="output">
-        /// An output tuple that contains the converted variable name, the original format type,
-        /// and the target format type (TitleWords).
-        /// </param>
-        /// <returns>
-        /// A boolean value indicating whether the conversion was successful.
-        /// </returns>
+        /// <summary>Attempts to convert a variable name to Title Words.</summary>
+        /// <inheritdoc cref="TryConvertTo"/>
         public static bool TryConvertToTitleWords(string variableName,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output) =>
             TryConvertTo(variableName, RequestedVariableNameTypeEnum.TitleWords, out output);
 
-        /// <summary>
-        /// Converts the given variable name to the SentenceWords format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted.</param>
-        /// <returns>A tuple containing the converted variable name in SentenceWords format, the original format of the variable name, and the target format (SentenceWords).</returns>
+        /// <summary>Converts a variable name to Sentence words.</summary>
+        /// <inheritdoc cref="ConvertTo"/>
         public static (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to)
-            ConvertToSentenceWords(string variableName) => ConvertTo(variableName, RequestedVariableNameTypeEnum.SentenceWords);
+            ConvertToSentenceWords(string variableName) =>
+            ConvertTo(variableName, RequestedVariableNameTypeEnum.SentenceWords);
 
-        /// <summary>
-        /// Attempts to convert the given variable name to SentenceWords format.
-        /// </summary>
-        /// <param name="variableName">The variable name to be converted to SentenceWords format.</param>
-        /// <param name="output">
-        /// An output tuple that contains the converted variable name, the original format type,
-        /// and the target format type (SentenceWords).
-        /// </param>
-        /// <returns>
-        /// A boolean value indicating whether the conversion was successful.
-        /// </returns>
+        /// <summary>Attempts to convert a variable name to Sentence words.</summary>
+        /// <inheritdoc cref="TryConvertTo"/>
         public static bool TryConvertToSentenceWords(string variableName,
             out (string result, ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) output) =>
             TryConvertTo(variableName, RequestedVariableNameTypeEnum.SentenceWords, out output);
 
         /// <summary>
-        /// Gets a formatted variable name from an object's type name.
+        /// Gets a formatted variable name from an object instance's type.
         /// </summary>
-        /// <param name="obj">The object whose type name will be used.</param>
-        /// <param name="targetType">The desired variable name format (default is camelCase).</param>
+        /// <param name="obj">The object whose type name will be formatted.</param>
+        /// <param name="targetType">The target naming convention. Defaults to camelCase.</param>
         /// <returns>A formatted variable name string.</returns>
-        public static string GetVariableName(object obj, RequestedVariableNameTypeEnum targetType = RequestedVariableNameTypeEnum.CamelCase)
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="obj"/> is null.</exception>
+        public static string GetVariableName(object obj,
+            RequestedVariableNameTypeEnum targetType = RequestedVariableNameTypeEnum.CamelCase)
         {
-            return obj == null ? string.Empty : GetVariableName(obj.GetType(), targetType);
+            ArgumentNullException.ThrowIfNull(obj);
+            return GetVariableName(obj.GetType(), targetType);
         }
 
         /// <summary>
         /// Gets a formatted variable name from a type or member name.
         /// </summary>
         /// <param name="member">The member or type whose name will be used.</param>
-        /// <param name="targetType">The desired variable name format (default is camelCase).</param>
+        /// <param name="targetType">The target naming convention. Defaults to camelCase.</param>
         /// <returns>A formatted variable name string.</returns>
-        public static string GetVariableName(MemberInfo member, RequestedVariableNameTypeEnum targetType = RequestedVariableNameTypeEnum.CamelCase)
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="member"/> is null.</exception>
+        public static string GetVariableName(MemberInfo member,
+            RequestedVariableNameTypeEnum targetType = RequestedVariableNameTypeEnum.CamelCase)
         {
-            if (member == null) return string.Empty;
+            ArgumentNullException.ThrowIfNull(member);
+
             var name = member.Name;
+
+            // Strip generic arity suffix (e.g. "List`1" → "List")
             if (name.Contains('`'))
-            {
-                name = name.Substring(0, name.IndexOf('`'));
-            }
+                name = name[..name.IndexOf('`')];
+
             return ConvertTo(name, targetType).result;
         }
 
         /// <summary>
-        /// Gets a formatted class name from an object's type.
+        /// Gets a PascalCase class name from an object instance's type.
         /// </summary>
         /// <param name="obj">The object whose type name will be used.</param>
         /// <returns>A PascalCase formatted class name string.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="obj"/> is null.</exception>
         public static string GetClassName(object obj)
         {
-            return obj == null ? string.Empty : GetClassName(obj.GetType());
+            ArgumentNullException.ThrowIfNull(obj);
+            return GetClassName(obj.GetType());
         }
 
         /// <summary>
-        /// Gets a formatted class name from a type.
+        /// Gets a PascalCase class name from a type.
         /// </summary>
         /// <param name="type">The type whose name will be used.</param>
         /// <returns>A PascalCase formatted class name string.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="type"/> is null.</exception>
         public static string GetClassName(Type type)
         {
+            ArgumentNullException.ThrowIfNull(type);
             return GetVariableName(type, RequestedVariableNameTypeEnum.PascalCase);
         }
+
+        /// <summary>
+        /// Maps a <see cref="ResultsVariableNameTypeEnum"/> to its equivalent
+        /// <see cref="RequestedVariableNameTypeEnum"/> and checks whether it matches
+        /// <paramref name="to"/>. Used to short-circuit conversion when source and
+        /// target are the same format, without relying on fragile string comparisons
+        /// across two separate enum types.
+        /// </summary>
+        private static bool IsSameFormat(ResultsVariableNameTypeEnum from, RequestedVariableNameTypeEnum to) =>
+            from switch
+            {
+                ResultsVariableNameTypeEnum.CamelCase => to == RequestedVariableNameTypeEnum.CamelCase,
+                ResultsVariableNameTypeEnum.PascalCase => to == RequestedVariableNameTypeEnum.PascalCase,
+                ResultsVariableNameTypeEnum.SnakeCase => to == RequestedVariableNameTypeEnum.SnakeCase,
+                ResultsVariableNameTypeEnum.ScreamingSnakeCase =>
+                    to == RequestedVariableNameTypeEnum.ScreamingSnakeCase,
+                ResultsVariableNameTypeEnum.KebabCase => to == RequestedVariableNameTypeEnum.KebabCase,
+                ResultsVariableNameTypeEnum.TrainCase => to == RequestedVariableNameTypeEnum.TrainCase,
+                ResultsVariableNameTypeEnum.Unicase => to == RequestedVariableNameTypeEnum.Unicase,
+                ResultsVariableNameTypeEnum.TrollCase => to == RequestedVariableNameTypeEnum.TrollCase,
+                _ => false
+            };
 
         private static string[] _getWords(string variableName, ResultsVariableNameTypeEnum type)
         {
@@ -422,69 +389,101 @@ public static partial class Utilities
                 case ResultsVariableNameTypeEnum.SnakeCase:
                 case ResultsVariableNameTypeEnum.ScreamingSnakeCase:
                     return variableName.Split('_', StringSplitOptions.RemoveEmptyEntries);
+
                 case ResultsVariableNameTypeEnum.KebabCase:
                 case ResultsVariableNameTypeEnum.TrainCase:
                     return variableName.Split('-', StringSplitOptions.RemoveEmptyEntries);
+
                 case ResultsVariableNameTypeEnum.CamelCase:
                 case ResultsVariableNameTypeEnum.PascalCase:
-                    return Regex.Split(variableName, @"(?=[A-Z])").Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                    // Split on word boundaries, correctly handling consecutive uppercase runs
+                    // (acronyms) by keeping them together:
+                    //   "HTMLParser"    → ["HTML", "Parser"]
+                    //   "parseHTMLDoc"  → ["parse", "HTML", "Doc"]
+                    //   "MyClassName"   → ["My", "Class", "Name"]
+                    // Pattern explanation:
+                    //   (?<=[a-z0-9])(?=[A-Z])     — split before an uppercase that follows a lowercase/digit
+                    //   (?<=[A-Z])(?=[A-Z][a-z])   — split before the last uppercase in a run (e.g. "HTMLParser" → "HTML|Parser")
+                    return PascalSplitRegex().Split(variableName)
+                        .Where(s => !string.IsNullOrEmpty(s))
+                        .ToArray();
+
                 case ResultsVariableNameTypeEnum.Words:
                     return Regex.Split(variableName, @"[^a-zA-Z0-9]+")
                         .Where(s => !string.IsNullOrEmpty(s))
-                        .SelectMany(p => Regex.Split(p, @"(?=[A-Z])"))
+                        .SelectMany(p => PascalSplitRegex().Split(p))
                         .Where(s => !string.IsNullOrEmpty(s))
                         .ToArray();
+
                 case ResultsVariableNameTypeEnum.Unicase:
                 case ResultsVariableNameTypeEnum.TrollCase:
                 default:
+                    // Word boundaries are unrecoverable from all-lower or all-upper input.
+                    // Treated as a single word.
                     return [variableName];
             }
         }
-
-        private static readonly string[] TitleCaseMinorWords =
-        [
-            "a", "an", "the", 
-            "and", "but", "for", "or", "nor", 
-            "at", "by", "in", "of", "on", "to", "with", "from"
-        ];
 
         private static string _internalConvert(string[] words, RequestedVariableNameTypeEnum targetType)
         {
             switch (targetType)
             {
                 case RequestedVariableNameTypeEnum.CamelCase:
-                    return words[0].ToLower() +
-                           string.Concat(words.Skip(1).Select(w => char.ToUpper(w[0]) + w[1..].ToLower()));
+                    return words[0].ToLowerInvariant() +
+                           string.Concat(words.Skip(1).Select(w => char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant()));
+
                 case RequestedVariableNameTypeEnum.PascalCase:
-                    return string.Concat(words.Select(w => char.ToUpper(w[0]) + w[1..].ToLower()));
+                    return string.Concat(words.Select(w => char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant()));
+
                 case RequestedVariableNameTypeEnum.SnakeCase:
-                    return string.Join("_", words.Select(w => w.ToLower()));
+                    return string.Join("_", words.Select(w => w.ToLowerInvariant()));
+
                 case RequestedVariableNameTypeEnum.ScreamingSnakeCase:
-                    return string.Join("_", words.Select(w => w.ToUpper()));
+                    return string.Join("_", words.Select(w => w.ToUpperInvariant()));
+
                 case RequestedVariableNameTypeEnum.KebabCase:
-                    return string.Join("-", words.Select(w => w.ToLower()));
+                    return string.Join("-", words.Select(w => w.ToLowerInvariant()));
+
                 case RequestedVariableNameTypeEnum.TrainCase:
-                    return string.Join("-", words.Select(w => char.ToUpper(w[0]) + w[1..].ToLower()));
+                    return string.Join("-",
+                        words.Select(w => char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant()));
+
                 case RequestedVariableNameTypeEnum.Unicase:
-                    return string.Concat(words).ToLower();
+                    return string.Concat(words).ToLowerInvariant();
+
                 case RequestedVariableNameTypeEnum.TrollCase:
-                    return string.Concat(words).ToUpper();
+                    return string.Concat(words).ToUpperInvariant();
+
                 case RequestedVariableNameTypeEnum.TitleWords:
                     return string.Join(" ", words.Select((w, i) =>
                     {
-                        var lower = w.ToLower();
+                        var lower = w.ToLowerInvariant();
+                        // Minor words are lowercased unless they are first or last
                         if (i > 0 && i < words.Length - 1 && TitleCaseMinorWords.Contains(lower))
-                        {
                             return lower;
-                        }
-                        return char.ToUpper(lower[0]) + lower[1..];
+                        return char.ToUpperInvariant(lower[0]) + lower[1..];
                     }));
+
                 case RequestedVariableNameTypeEnum.SentenceWords:
-                    return char.ToUpper(words[0][0]) + words[0][1..].ToLower() + 
-                           (words.Length > 1 ? " " + string.Join(" ", words.Skip(1).Select(w => w.ToLower())) : "");
+                    return char.ToUpperInvariant(words[0][0]) + words[0][1..].ToLowerInvariant() +
+                           (words.Length > 1
+                               ? " " + string.Join(" ", words.Skip(1).Select(w => w.ToLowerInvariant()))
+                               : "");
+
                 default:
                     return string.Concat(words);
             }
         }
     }
+
+    /// <summary>
+    /// Splits a PascalCase or camelCase string on word boundaries while keeping
+    /// consecutive-uppercase runs (acronyms) together as a single token.
+    /// Examples:
+    ///   "HTMLParser"   → ["HTML", "Parser"]
+    ///   "parseHTMLDoc" → ["parse", "HTML", "Doc"]
+    ///   "MyClass"      → ["My", "Class"]
+    /// </summary>
+    [GeneratedRegex(@"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")]
+    private static partial Regex PascalSplitRegex();
 }
